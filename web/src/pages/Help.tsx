@@ -1,6 +1,7 @@
+import type { ReactNode } from "react";
 import { EpistemicTag, PageTitle, Status } from "../components/ui";
 
-const TERMS: [string, string, React.ReactNode][] = [
+export const TERMS: [string, string, ReactNode][] = [
   ["incident", "Incident", "Opened automatically when a deterministic quality check fails after a pipeline run. Rules decide that something is wrong; the agent never does."],
   ["check", "Quality check", "A deterministic rule: schema contract, data test, freshness, business invariant, anomaly or model run. Each has its own type because they answer different questions."],
   ["invariant", "Business invariant", "A rule the report must satisfy against an independent source, e.g. daily collections must equal the core-banking control totals."],

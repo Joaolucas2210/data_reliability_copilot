@@ -23,7 +23,7 @@ def _ev(i: str, content: str) -> Evidence:
 def test_transitions_reject_illegal_moves():
     check_transition("incident", "open", "investigating")
     with pytest.raises(ValueError):
-        check_transition("incident", "resolved", "open")
+        check_transition("incident", "resolved", "investigating")
     with pytest.raises(ValueError):
         check_transition("proposal", "proposed", "approved")  # must be validated first
 

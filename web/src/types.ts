@@ -169,6 +169,7 @@ export interface Investigation {
   status: string;
   review?: ReviewRecord | null;
   last_status_change?: { at: string; actor: string; from_status: string | null; to_status: string } | null;
+  cancel_requested_by?: { actor: string; at: string } | null;
   created_at?: string;
   outcome: string | null;
   mode: "fake" | "live";
@@ -196,6 +197,7 @@ export interface ValidationRun {
   proposal_id: string;
   investigation_id?: string;
   incident_id?: string;
+  playbook?: string;
   status: string;
   error?: string | null;
   sandbox_db: string;

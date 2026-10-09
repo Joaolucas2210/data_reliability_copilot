@@ -107,7 +107,7 @@ export function Gallery() {
         <div className="grid">
           <Loading />
           <EmptyState title="No incidents" hint="Deterministic checks found nothing." />
-          <ErrorState message="Network error (fixture)" onRetry={() => undefined} />
+          <EmbeddedContext.Provider value={true}><ErrorState message="Network error (fixture)" onRetry={() => undefined} /></EmbeddedContext.Provider>
           <AccessDenied needed="approver" />
           <NotFound what="investigation" id="inv_example" />
         </div>

@@ -219,6 +219,19 @@ def metrics(dsn: str) -> dict:
     }  # type: ignore[index]
 
 
+class ProgressSteps(list):
+    """List of stage results that persists itself on every append, so a running validation shows live progress."""
+
+    def __init__(self, vr_id: str):
+        super().__init__()
+        self.vr_id = vr_id
+
+    def append(self, item: dict) -> None:  # type: ignore[override]
+        super().append(item)
+        with store.connect() as conn:
+            conn.execute("update validation_run set steps=%s where id=%s", (store.j(list(self)), self.vr_id))
+
+
 def create_queued_run(conn, proposal_id: str, actor: str) -> str:
     """Create the validation run row up front (status queued) so callers get its id immediately."""
     vr_id = new_id("val")
@@ -263,7 +276,7 @@ def validate(proposal_id: str, keep_sandbox: bool = False, validation_run_id: st
     pb_dir = PLAYBOOK_DIR / prop["playbook"]
     playbook = yaml.safe_load((pb_dir / "playbook.yaml").read_text())
     work = settings.var_dir / "validations" / vr_id
-    steps: list[dict] = []
+    steps: list[dict] = ProgressSteps(vr_id)  # each finished stage is visible to the UI immediately
     result: dict = {"isolation_checks": [], "metrics_before": None, "metrics_after": None, "invariants": []}
     status = "error"
     with obs.tracer.start_as_current_span("recovery.validate", attributes={"validation_run_id": vr_id}):

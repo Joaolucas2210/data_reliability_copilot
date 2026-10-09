@@ -12,8 +12,16 @@
     "a11y": "playwright test"
   },
   "dependencies": {
+    "@mantine/charts": "9.6.2",
+    "@mantine/core": "9.6.2",
+    "@mantine/hooks": "9.6.2",
+    "@mantine/modals": "9.6.2",
+    "@mantine/notifications": "9.6.2",
+    "@mantine/spotlight": "9.6.2",
+    "@tabler/icons-react": "3.48.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "recharts": "3.10.1"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

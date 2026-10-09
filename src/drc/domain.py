@@ -63,8 +63,8 @@ TRANSITIONS: dict[str, dict[str, set[str]]] = {
         "open": {"investigating", "dismissed"},
         "investigating": {"awaiting_review", "open"},  # back to open on failure/cancel
         "awaiting_review": {"resolved", "dismissed", "investigating"},
-        "resolved": set(),
-        "dismissed": set(),
+        "resolved": {"open"},  # reopen (human decision, audited)
+        "dismissed": {"open"},
     },
     "investigation": {
         "queued": {"running", "cancelled"},

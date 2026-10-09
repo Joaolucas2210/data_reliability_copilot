@@ -39,6 +39,8 @@ for (const theme of THEMES) {
   test(`axe diagnosis tab panels ${theme}`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: theme });
     await page.goto("/#/gallery");
+    // screen previews are inert in the design system page; lift that so the tabs can be activated here
+    await page.evaluate(() => document.querySelectorAll("[inert]").forEach((e) => e.removeAttribute("inert")));
     const tabs = page.getByRole("tablist", { name: "Diagnosis sections" }).getByRole("tab");
     const found: string[] = [];
     for (let i = 0; i < (await tabs.count()); i++) {

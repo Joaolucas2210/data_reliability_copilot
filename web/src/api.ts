@@ -111,8 +111,18 @@ export function useApi<T>(path: string, opts: { pollWhile?: (d: T) => boolean; i
   return [s, reload];
 }
 
+let lastUserAnnouncement = 0;
+
+/** Announcement of a background status change; skipped right after a user-triggered announcement so the confirmation
+ *  of the user's own action ("Decision recorded…") is not overwritten by the status poll that follows it. */
+export function announceStatus(message: string) {
+  if (Date.now() - lastUserAnnouncement < 5000) return;
+  announce(message, false);
+}
+
 /** Polite screen-reader announcement through the app-level live region (#announcer). */
-export function announce(message: string) {
+export function announce(message: string, fromUser = true) {
+  if (fromUser) lastUserAnnouncement = Date.now();
   const el = document.getElementById("announcer");
   if (!el) return;
   el.textContent = "";

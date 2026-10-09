@@ -1,6 +1,6 @@
 /* Design tokens — Data Reliability Copilot.
    Every fg/bg pair listed in scripts/contrast.mjs is checked against WCAG 2.2 AA (`npm run contrast`).
-   Theme: follows prefers-color-scheme; [data-theme] on <html> overrides it. */
+   Theme: one switch for everything — Mantine's data-mantine-color-scheme on <html> (light | dark). */
 
 :root {
   color-scheme: light;
@@ -57,44 +57,17 @@
   --radius-sm: 4px;
   --radius-md: 8px;
   --target-min: 24px; /* WCAG 2.5.8 */
+
+  /* chart series (validated: dataviz validate_palette, light on #ffffff) */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #0f1115;
-    --surface: #171a21;
-    --surface-2: #1f232c;
-    --text: #e6e8ec;
-    --text-muted: #a3aab6;
-    --border: #2f3542;
-    --border-strong: #7a8291;
-    --focus: #8ab4ff;
-    --link: #8ab4ff;
-    --pass-fg: #86efac;
-    --pass-bg: #12301f;
-    --warn-fg: #fcd34d;
-    --warn-bg: #3a2a06;
-    --fail-fg: #fca5a5;
-    --fail-bg: #3b1414;
-    --info-fg: #93c5fd;
-    --info-bg: #142544;
-    --unknown-fg: #d1d5db;
-    --unknown-bg: #2a2f38;
-    --fact-fg: #e5e7eb;
-    --fact-bg: #2a2f38;
-    --hypothesis-fg: #d8b4fe;
-    --hypothesis-bg: #2e1a47;
-    --recommendation-fg: #fdba74;
-    --recommendation-bg: #3b200d;
-    --verified-fg: #86efac;
-    --verified-bg: #12301f;
-  }
-}
-
-/* explicit override — same values as the media query block */
-:root[data-theme="dark"] {
+/* dark theme: Mantine resolves "auto" and sets data-mantine-color-scheme on <html> before first paint */
+:root[data-mantine-color-scheme="dark"] {
   color-scheme: dark;
+  --series-1: #3987e5; /* validated on #171a21 */
+  --series-2: #d95926;
   --bg: #0f1115;
   --surface: #171a21;
   --surface-2: #1f232c;

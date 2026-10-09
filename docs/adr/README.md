@@ -16,6 +16,7 @@ Each ADR states context, alternatives, decision, trade-offs, risks, evidence and
 | [0009](ADR-0009-observability.md) | OpenTelemetry spans, structured logs and audit table | Accepted |
 | [0010](ADR-0010-orchestration.md) | CLI + Make + Compose; Postgres job queue; no orchestrator yet | Accepted |
 | [0011](ADR-0011-multicloud-terraform.md) | Multicloud via per-cloud Terraform roots, Azure as reference | Accepted (static validation only) |
-| [0012](ADR-0012-design-system.md) | Small in-repo design system on CSS custom properties | Accepted |
+| [0012](ADR-0012-design-system.md) | Small in-repo design system on CSS custom properties | Partially superseded by 0015 |
 | [0013](ADR-0013-authn-authz.md) | Dev-only header roles now; Entra ID before any cloud exposure | Accepted (blocks cloud exposure) |
 | [0014](ADR-0014-per-run-snapshots.md) | Per-run warehouse snapshots and per-run project copies | Accepted (phase 2) |
+| [0015](ADR-0015-mantine-ui-library.md) | Mantine component library, dark mode, validated chart palette | Accepted (UX round 3) |

@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 
 const css = readFileSync(new URL("../src/styles/tokens.css", import.meta.url), "utf8");
 const block = (re) => Object.fromEntries([...css.match(re)[1].matchAll(/--([\w-]+):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]]));
-const themes = { light: block(/:root \{([^}]*)\}/), dark: block(/:root\[data-theme="dark"\] \{([^}]*)\}/) };
+const themes = { light: block(/:root \{([^}]*)\}/), dark: block(/:root\[data-mantine-color-scheme="dark"\] \{([^}]*)\}/) };
 
 const lum = (hex) => {
   const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));

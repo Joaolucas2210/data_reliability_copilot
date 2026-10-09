@@ -1,5 +1,7 @@
-import { useEffect, useRef } from "react";
-import { announce, useApi } from "../api";
+import { Accordion, Alert, Button, Code, Group, Loader, Text, ThemeIcon, Timeline } from "@mantine/core";
+import { IconAlertTriangle, IconArrowLeft, IconCircleCheck, IconCircleDashed, IconCircleX } from "@tabler/icons-react";
+import { useEffect, useRef, useState } from "react";
+import { announceStatus, useApi } from "../api";
 import { Breadcrumbs, Card, DataTable, EpistemicTag, fmtClock, fmtTime, fmtValue, LoadView, NotFound, PageTitle, Status, StatusPill } from "../components/ui";
 import { statusLabel } from "../status";
 import type { ValidationRun } from "../types";
@@ -22,7 +24,7 @@ export function ValidationPage({ id }: { id: string }) {
   useEffect(() => {
     if (load.state !== "ok") return;
     const st = load.data.status;
-    if (prevStatus.current && prevStatus.current !== st) announce(`Sandbox validation ${statusLabel("validation", st).toLowerCase()}.`);
+    if (prevStatus.current && prevStatus.current !== st) announceStatus(`Sandbox validation ${statusLabel("validation", st).toLowerCase()}.`);
     prevStatus.current = st;
     document.title = `Validation ${load.data.id} · Data Reliability Copilot`;
   }, [load]);
@@ -41,79 +43,112 @@ export function ValidationPage({ id }: { id: string }) {
           { label: "Sandbox validation" },
         ]}
       />
-      {load.state !== "ok" && <PageTitle>{notFound ? "Validation run not found" : "Recovery validation"}</PageTitle>}
+      <PageTitle>{notFound ? "Validation run not found" : <>Sandbox validation <code>{v?.id ?? id}</code></>}</PageTitle>
       <LoadView load={load} onRetry={reload} notFound={<NotFound what="validation run" id={id} back={{ href: "#/incidents", label: "Back to incidents" }} />}>
-        {(run) => <ValidationView v={run} updatedAt={load.state === "ok" ? load.updatedAt : undefined} />}
+        {(run) => <ValidationView v={run} updatedAt={load.state === "ok" ? load.updatedAt : undefined} showTitle={false} />}
       </LoadView>
     </>
   );
 }
 
-export function ValidationView({ v, updatedAt }: { v: ValidationRun; updatedAt?: Date }) {
+export function ValidationView({ v, updatedAt, showTitle = true }: { v: ValidationRun; updatedAt?: Date; showTitle?: boolean }) {
   const passed = v.status === "passed";
   const active = v.status === "queued" || v.status === "running";
   const steps = v.steps ?? [];
   const isolation = v.isolation_checks ?? [];
   const invariants = v.invariants ?? [];
   const keys = [...new Set([...Object.keys(v.metrics_before ?? {}), ...Object.keys(v.metrics_after ?? {})])];
+  const elapsed = useElapsed(v.started_at, active ? null : v.finished_at);
+  const failedStep = steps.find((s) => s.status === "fail" || s.status === "error");
   return (
     <>
-      <PageTitle>Recovery validation <code>{v.id}</code></PageTitle>
-      <div className="row" style={{ marginBottom: "var(--sp-4)" }}>
+      {showTitle && <PageTitle>Sandbox validation <code>{v.id}</code></PageTitle>}
+      <Group gap="xs" mb="sm" wrap="wrap">
         <Status entity="validation" value={v.status} />
         {passed && <EpistemicTag kind="verified" />}
-        <span className="muted">
-          sandbox <code>{v.sandbox_db}</code> · started {fmtTime(v.started_at)}
-          {active ? <> · updates automatically{updatedAt && <> · last checked {fmtClock(updatedAt)}</>}</> : <> · cleaned up {fmtTime(v.cleaned_up_at)}</>}
-        </span>
-      </div>
-      <p className="muted">
-        Executed only on an isolated copy. "Verified" means the checks below passed in the sandbox; nothing was applied to production.
-      </p>
-      {active && (
-        <Card title={v.status === "queued" ? "Waiting for a worker" : "Validating in the sandbox"}>
-          <div className="state" role="status">
-            <span className="spinner" aria-hidden="true" />{" "}
-            {v.status === "queued" ? "Queued — a worker will start it shortly." : "Running — creating the sandbox, copying the snapshot and running the stages below."}{" "}
-            Usually about a minute. Results appear here when it finishes.
-          </div>
-          <ol className="steps pending">
-            {Object.entries(STEP_INFO).map(([k, [title, info]]) => (
-              <li key={k}><div><strong>{title}</strong><div className="muted">{info}</div></div><span className="muted">pending</span></li>
-            ))}
-          </ol>
-        </Card>
+        <Text size="sm" c="dimmed">
+          {v.playbook && <>playbook <code>{v.playbook}</code> · </>}started {fmtTime(v.started_at)} · {active ? "running for" : "took"} {elapsed}
+          {active && updatedAt && <> · updates automatically · last checked {fmtClock(updatedAt)}</>}
+        </Text>
+      </Group>
+      <Text size="sm" c="dimmed" mb="lg">
+        Runs only on an isolated copy (<code>{v.sandbox_db}</code>{v.cleaned_up_at ? <>, removed {fmtTime(v.cleaned_up_at)}</> : null}). "Verified" means the checks below passed in
+        the sandbox; nothing was applied to production.
+      </Text>
+
+      {!active && (
+        <Alert
+          color={passed ? "teal" : "red"}
+          variant="light"
+          radius="lg"
+          mb="lg"
+          role="note"
+          icon={passed ? <IconCircleCheck size={20} /> : <IconAlertTriangle size={20} />}
+          title={passed ? "The recovery fixed the sandbox copy" : `Validation ${v.status === "error" ? "stopped with an error" : "failed"}${failedStep ? ` at “${STEP_INFO[failedStep.name]?.[0] ?? failedStep.name}”` : ""}`}
+        >
+          <Text size="sm" mb="sm">
+            {passed
+              ? "All stages and invariants passed on the isolated copy. An approver can now review the diagnosis with this result in view."
+              : v.error ?? "See the failing stage below. The recovery should not be approved as is."}
+          </Text>
+          {v.investigation_id && (
+            <Button component="a" href={`#/investigations/${v.investigation_id}`} size="xs" variant={passed ? "filled" : "default"} leftSection={<IconArrowLeft size={14} />}>
+              Back to the investigation to review
+            </Button>
+          )}
+        </Alert>
       )}
-      {v.error && <p className="banner tone-fail" role="note"><strong>The run stopped with an error:</strong> {v.error}</p>}
+
+      <Card title={active ? (v.status === "queued" ? "Waiting for a worker" : "Validating in the sandbox") : "Stages"}>
+        {active && (
+          <Group gap="sm" mb="md" wrap="nowrap" role="status">
+            <Loader size="sm" type="dots" aria-hidden="true" />
+            <Text size="sm">
+              {v.status === "queued" ? "Queued — a worker will start it shortly." : `Stage ${Math.min(steps.length + 1, 6)} of 6: ${STEP_INFO[Object.keys(STEP_INFO)[steps.length]]?.[0] ?? "finishing"}.`} Usually about
+              a minute; you can leave and come back.
+            </Text>
+          </Group>
+        )}
+        <Timeline active={steps.length - 1} bulletSize={26} lineWidth={2} className="stages">
+          {Object.entries(STEP_INFO).map(([k, [title, info]], i) => {
+            const s = steps.find((x) => x.name === k);
+            const current = active && v.status === "running" && i === steps.length;
+            const ok = s?.status === "pass";
+            const bad = s && (s.status === "fail" || s.status === "error");
+            return (
+              <Timeline.Item
+                key={k}
+                bullet={
+                  <ThemeIcon size={26} radius="xl" variant={s ? "filled" : "light"} color={ok ? "teal" : bad ? "red" : s ? "gray" : "gray"} aria-hidden="true">
+                    {current ? <Loader size={12} color="currentColor" /> : ok ? <IconCircleCheck size={16} /> : bad ? <IconCircleX size={16} /> : <IconCircleDashed size={16} />}
+                  </ThemeIcon>
+                }
+                title={
+                  <Group gap="xs" wrap="wrap">
+                    <Text fw={600}>{title}</Text>
+                    {s ? <Status entity="check" value={s.status} /> : <Text size="sm" c="dimmed">{current ? "in progress" : active ? "pending" : "not run"}</Text>}
+                    {s?.duration_ms != null && <Text size="sm" c="dimmed">{fmtMs(s.duration_ms)}</Text>}
+                  </Group>
+                }
+              >
+                <Text size="sm" c="dimmed">{info}</Text>
+                {s?.detail != null && <StepDetail detail={s.detail} />}
+              </Timeline.Item>
+            );
+          })}
+        </Timeline>
+      </Card>
       {!active && (
       <>
-      <Card title="Steps">
-        <ol className="steps">
-          {steps.map((s) => (
-            <li key={s.name}>
-              <div>
-                <strong>{STEP_INFO[s.name]?.[0] ?? s.name}</strong>
-                <div className="muted">{STEP_INFO[s.name]?.[1]}</div>
-                {s.detail != null && <StepDetail detail={s.detail} />}
-              </div>
-              <span>
-                <Status entity="check" value={s.status} />
-                {s.duration_ms != null && <span className="muted"> {s.duration_ms} ms</span>}
-              </span>
-            </li>
-          ))}
-        </ol>
-      </Card>
-
       <Card title="Isolation checks">
           <DataTable
             caption="Checks that the sandbox cannot touch production"
             rows={isolation}
             rowKey={(c) => c.name}
             columns={[
-              { header: "Check", render: (c) => c.name },
+              { header: "Check", render: (c) => humanizeName(c.name) },
               { header: "Result", render: (c) => <StatusPill status={c.passed ? "pass" : "fail"} label={c.passed ? "isolated" : "NOT isolated"} /> },
-              { header: "Detail", render: (c) => (typeof c.detail === "string" ? <span className="detail">{c.detail}</span> : <StepDetail detail={c.detail} />) },
+              { header: "Detail", render: (c) => (typeof c.detail === "string" ? <Text size="sm" className="detail">{c.detail}</Text> : <StepDetail detail={c.detail} />) },
             ]}
           />
         </Card>
@@ -123,7 +158,7 @@ export function ValidationView({ v, updatedAt }: { v: ValidationRun; updatedAt?:
             rows={invariants}
             rowKey={(i) => i.name}
             columns={[
-              { header: "Invariant", render: (i) => i.name },
+              { header: "Invariant", render: (i) => humanizeName(i.name) },
               { header: "Before", render: (i) => fmtInvariant(i.before) },
               { header: "After", render: (i) => fmtInvariant(i.after) },
               { header: "After holds", render: (i) => <StatusPill status={i.passed ? "pass" : "fail"} label={i.passed ? "holds" : "violated"} /> },
@@ -137,7 +172,7 @@ export function ValidationView({ v, updatedAt }: { v: ValidationRun; updatedAt?:
           rows={keys}
           rowKey={(k) => k}
           columns={[
-            { header: "Metric", render: (k) => <code>{k}</code> },
+            { header: "Metric", render: (k) => humanizeName(k) },
             { header: "Before", render: (k) => fmtValue(v.metrics_before?.[k]), numeric: true },
             { header: "After", render: (k) => fmtValue(v.metrics_after?.[k]), numeric: true },
             { header: "Change", render: (k) => delta(v.metrics_before?.[k], v.metrics_after?.[k]), numeric: true },
@@ -168,24 +203,28 @@ function fmtInvariant(r: unknown) {
 /** Structured stage details as readable key/value pairs (collapsed), with the raw JSON one click away. */
 function StepDetail({ detail }: { detail: unknown }) {
   if (detail == null) return null;
-  if (typeof detail !== "object") return <div className="detail">{String(detail)}</div>;
+  if (typeof detail !== "object") return <Text size="sm" mt={4} className="detail">{String(detail)}</Text>;
   const entries = Object.entries(detail as Record<string, unknown>);
   return (
-    <details className="step-detail">
-      <summary>Details ({entries.length} {entries.length === 1 ? "item" : "items"})</summary>
-      <dl className="kv kv-compact">
-        {entries.map(([k, v]) => (
-          <div key={k} className="contents">
-            <dt className="mono">{k}</dt>
-            <dd>{fmtDetailValue(v)}</dd>
-          </div>
-        ))}
-      </dl>
-      <details>
-        <summary>Raw JSON</summary>
-        <pre tabIndex={0} aria-label="Raw stage detail">{JSON.stringify(detail, null, 2)}</pre>
-      </details>
-    </details>
+    <Accordion variant="subtle" chevronPosition="left" className="step-detail" mt={4} styles={{ control: { paddingInline: 4 }, label: { paddingBlock: 6 }, content: { paddingInline: 4 } }}>
+      <Accordion.Item value="d">
+        <Accordion.Control>Details ({entries.length} {entries.length === 1 ? "item" : "items"})</Accordion.Control>
+        <Accordion.Panel>
+          <dl className="kv kv-compact">
+            {entries.map(([k, v]) => (
+              <div key={k} className="contents">
+                <dt>{humanizeName(k)}</dt>
+                <dd>{fmtDetailValue(v)}</dd>
+              </div>
+            ))}
+          </dl>
+          <details className="raw-json">
+            <summary>Raw JSON</summary>
+            <Code block tabIndex={0} aria-label="Raw stage detail">{JSON.stringify(detail, null, 2)}</Code>
+          </details>
+        </Accordion.Panel>
+      </Accordion.Item>
+    </Accordion>
   );
 }
 
@@ -198,4 +237,25 @@ function fmtDetailValue(v: unknown) {
     return Object.entries(o).map(([k, x]) => `${k}: ${typeof x === "object" ? JSON.stringify(x) : String(x)}`).join(" · ");
   }
   return fmtValue(v);
+}
+
+function humanizeName(k: string) {
+  const t = k.replace(/[_.]+/g, " ").trim();
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+function fmtMs(ms: number) {
+  return ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`;
+}
+
+/** Elapsed time since `from`, ticking every second while `to` is null. */
+function useElapsed(from: string, to: string | null) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (to) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [to]);
+  const s = Math.max(0, Math.round(((to ? Date.parse(to) : now) - Date.parse(from)) / 1000));
+  return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`;
 }

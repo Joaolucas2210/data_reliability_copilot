@@ -1,3 +1,6 @@
+import { BarChart } from "@mantine/charts";
+import { Accordion, SegmentedControl, Text } from "@mantine/core";
+import { useState } from "react";
 import { useApi } from "../api";
 import { Card, DataTable, EmptyState, fmtTime, LoadView, ModeBanner, PageTitle, StatusPill } from "../components/ui";
 import { statusLabel } from "../status";
@@ -61,6 +64,7 @@ export function EvalView({ runs }: { runs: EvalRun[] }) {
   return (
     <>
       <ModeBanner mode={runs.some((r) => r.llm_provider === "fake") ? "fake" : "live"} />
+      <AccuracyChart runs={runs} />
       {splits.map((split) => {
         const rs = runs.filter((r) => r.split === split);
         const scenarios = [...new Set(rs.flatMap((r) => r.per_scenario.map((s) => s.scenario_id)))];
@@ -92,13 +96,15 @@ export function EvalView({ runs }: { runs: EvalRun[] }) {
                 })),
               ]}
             />
-            <p className="muted">{fmtTime(rs[0]?.created_at)} · prompt {rs[0]?.prompt_version} · provider {rs[0]?.llm_provider}</p>
+            <Text size="sm" c="dimmed">{fmtTime(rs[0]?.created_at)} · prompt {rs[0]?.prompt_version} · provider {rs[0]?.llm_provider}</Text>
           </Card>
         );
       })}
       <Card title="All metrics">
-        <details>
-          <summary>Show every metric per system</summary>
+        <Accordion variant="contained" radius="md" mb="md">
+          <Accordion.Item value="all">
+          <Accordion.Control>Show every metric per system</Accordion.Control>
+          <Accordion.Panel>
           <DataTable
             caption="All recorded metrics (not measured = the metric does not apply to that system)"
             rows={runs}
@@ -108,7 +114,9 @@ export function EvalView({ runs }: { runs: EvalRun[] }) {
               ...otherKeys.map((k) => ({ header: METRICS[k]?.[0] ?? k, render: (r: EvalRun) => fmtMetric(r, k), numeric: true })),
             ]}
           />
-        </details>
+          </Accordion.Panel>
+          </Accordion.Item>
+        </Accordion>
         <h3>What the metrics mean</h3>
         <dl className="kv">
           {[...HEADLINE, ...otherKeys].filter((k) => METRICS[k]).map((k) => (
@@ -120,5 +128,56 @@ export function EvalView({ runs }: { runs: EvalRun[] }) {
         </dl>
       </Card>
     </>
+  );
+}
+
+const SPLIT_LABEL = { dev: "Dev split", final: "Final (held-out) split" } as const;
+
+/** Diagnosis accuracy per system, dev vs final. Two series, palette validated for light + dark (CVD-safe); labels + legend + table, never colour alone. */
+function AccuracyChart({ runs }: { runs: EvalRun[] }) {
+  const [view, setView] = useState<"chart" | "table">("chart");
+  const splits = (["dev", "final"] as const).filter((sp) => runs.some((r) => r.split === sp));
+  const systems = [...new Set(runs.map((r) => r.system))];
+  const acc = (system: string, split: string) => {
+    const v = runs.find((r) => r.system === system && r.split === split)?.metrics.diagnosis_accuracy;
+    return v == null ? null : Math.round(Number(v) * 1000) / 10;
+  };
+  const data = systems.map((sys) => ({ system: SYSTEM_LABEL[sys] ?? sys, ...Object.fromEntries(splits.map((sp) => [SPLIT_LABEL[sp], acc(sys, sp)])) }));
+  return (
+    <Card
+      title="Diagnosis accuracy by system"
+      actions={<SegmentedControl size="xs" value={view} onChange={(v) => setView(v as "chart" | "table")} data={[{ value: "chart", label: "Chart" }, { value: "table", label: "Table" }]} aria-label="Show accuracy as" />}
+    >
+      <Text size="sm" c="dimmed" mb="md">Share of scenarios where the outcome and the exact set of causes match the ground truth. Higher is better.</Text>
+      {view === "chart" ? (
+        <figure className="chart" aria-label={`Bar chart: ${data.map((d) => `${d.system}: ${splits.map((sp) => `${SPLIT_LABEL[sp]} ${(d as Record<string, unknown>)[SPLIT_LABEL[sp]] ?? "not run"}%`).join(", ")}`).join("; ")}`}>
+          <BarChart
+            h={280}
+            data={data}
+            dataKey="system"
+            series={splits.map((sp, i) => ({ name: SPLIT_LABEL[sp], color: `var(--series-${i + 1})` }))}
+            withLegend={splits.length > 1}
+            maxBarWidth={72}
+            legendProps={{ verticalAlign: "top", height: 36 }}
+            withBarValueLabel
+            valueFormatter={(v) => `${v}%`}
+            yAxisProps={{ domain: [0, 100] }}
+            gridAxis="y"
+            barProps={{ radius: [4, 4, 0, 0] }}
+            tickLine="none"
+          />
+        </figure>
+      ) : (
+        <DataTable
+          caption="Diagnosis accuracy by system and split"
+          rows={data}
+          rowKey={(d) => d.system}
+          columns={[
+            { header: "System", render: (d) => d.system },
+            ...splits.map((sp) => ({ header: SPLIT_LABEL[sp], render: (d: Record<string, unknown>) => (d[SPLIT_LABEL[sp]] == null ? "not run" : `${d[SPLIT_LABEL[sp]]}%`), numeric: true })),
+          ]}
+        />
+      )}
+    </Card>
   );
 }

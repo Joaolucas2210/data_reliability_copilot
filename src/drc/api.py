@@ -3,6 +3,7 @@
 import os
 from typing import Annotated, Literal
 
+import psycopg
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -87,15 +88,15 @@ def health(_: Role = Depends(role)) -> list[dict]:
 
 @app.get("/api/incidents")
 def incidents(status: str | None = None, limit: int = 50, _: Role = Depends(role)) -> list[dict]:
-    # "unresolved" = every non-terminal status (what the health page counts)
-    unresolved = status == "unresolved"
+    # "unresolved" = every non-terminal status (what the health page counts); empty/absent = all statuses
+    status = status or None
     return _all(
         "select id,title,severity,status,dataset_id,occurrences,opened_at,updated_at,closed_at from incident"
-        " where (%s::text is null or status=%s or (%s and status not in ('resolved','dismissed')))"
-        " order by opened_at desc limit %s",
-        None if unresolved else status,
+        " where (%s::text is null) or (%s = 'unresolved' and status not in ('resolved','dismissed'))"
+        " or status = %s order by opened_at desc limit %s",
         status,
-        unresolved,
+        status,
+        status,
         min(limit, 200),
     )
 
@@ -199,6 +200,12 @@ def investigation(inv_id: str, r: Role = Depends(role)) -> dict:
         inv_id,
     )
     inv["last_status_change"] = last[0] if last else None
+    cancel = _all(
+        "select actor, at from audit_event where entity_type='investigation' and entity_id=%s"
+        " and action='investigation.cancel_requested' order by at desc limit 1",
+        inv_id,
+    )
+    inv["cancel_requested_by"] = cancel[0] if cancel else None
     return inv
 
 
@@ -229,6 +236,35 @@ def cancel(inv_id: str, r: Role = Depends(need("investigator"))) -> dict:
         raise HTTPException(409, str(e)) from e
 
 
+class IncidentStatusBody(BaseModel):
+    to: Literal["resolved", "dismissed", "open"]
+    note: str = ""
+
+
+@app.post("/api/incidents/{incident_id}/status")
+def set_incident_status(
+    incident_id: str, body: IncidentStatusBody, r: Role = Depends(need("approver"))
+) -> dict:
+    """Human closure or reopening of an incident (audited). Reopening fails if another unresolved incident already
+    tracks the same failure (one non-terminal incident per fingerprint)."""
+    _one("select id from incident where id=%s", incident_id)
+    try:
+        with store.connect() as conn, conn.transaction():
+            store.transition(conn, "incident", incident_id, body.to, f"dev:{r}", note=body.note)
+            conn.execute(
+                "update incident set closed_at = case when %s in ('resolved','dismissed') then now() end,"
+                " updated_at=now() where id=%s",
+                (body.to, incident_id),
+            )
+    except ValueError as e:
+        raise HTTPException(409, f"This incident cannot move to {body.to}: {e}") from e
+    except psycopg.errors.UniqueViolation as e:
+        raise HTTPException(
+            409, "Another unresolved incident already tracks the same failure; open that one instead."
+        ) from e
+    return incident(incident_id, r)
+
+
 @app.post("/api/proposals/{proposal_id}/validations", status_code=202)
 def start_validation(proposal_id: str, _: Role = Depends(need("investigator"))) -> dict:
     p = _one("select status from remediation_proposal where id=%s", proposal_id)
@@ -255,7 +291,7 @@ def start_validation(proposal_id: str, _: Role = Depends(need("investigator"))) 
 @app.get("/api/validation-runs/{vr_id}")
 def validation_run(vr_id: str, _: Role = Depends(role)) -> dict:
     return _one(
-        "select v.*, p.investigation_id, i.incident_id from validation_run v"
+        "select v.*, p.investigation_id, p.playbook, i.incident_id from validation_run v"
         " join remediation_proposal p on p.id=v.proposal_id join investigation i on i.id=p.investigation_id"
         " where v.id=%s",
         vr_id,

@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Data Reliability Copilot</title>
     <script>
-      // apply the saved theme before first paint (no light flash for dark-theme users)
-      try { var t = localStorage.getItem("drc.theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+      // resolve the colour scheme before first paint (same key as Mantine's localStorage manager) — no flash
+      try {
+        var v = localStorage.getItem("drc-color-scheme") || "auto";
+        if (v === "auto") v = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.setAttribute("data-mantine-color-scheme", v);
+      } catch (e) { document.documentElement.setAttribute("data-mantine-color-scheme", "light"); }
     </script>
   </head>
   <body>

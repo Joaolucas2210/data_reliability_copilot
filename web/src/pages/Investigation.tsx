@@ -1,9 +1,14 @@
-import { Fragment, useEffect, useId, useRef, useState } from "react";
-import { announce, api, canAct, getRole, useApi } from "../api";
+import { Accordion, Alert, Button, Checkbox, Group, Loader, Paper, SimpleGrid, Stack, Text, Textarea, ThemeIcon } from "@mantine/core";
 import {
-  AccessDenied, ActionButton, Breadcrumbs, Card, DataTable, EmptyState, EpistemicTag, EvidenceRef, fmtClock, fmtCost,
-  fmtTime, LoadView, ModeBanner, NotFound, PageTitle, revealAndFocus, Status, StatusPill, Tabs,
+  IconAlertTriangle, IconCircleCheck, IconClockHour4, IconFlask2, IconGavel, IconPlayerStop, IconShieldCheck, IconThumbDown, IconThumbUp,
+} from "@tabler/icons-react";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { announce, announceStatus, api, canAct, getRole, useApi } from "../api";
+import {
+  AccessDenied, ActionButton, BackToClaim, Breadcrumbs, Card, DataTable, EmptyState, EpistemicTag, EvidenceRef, fmtClock, fmtCost, fmtTime,
+  LoadView, ModeBanner, NotFound, PageTitle, revealAndFocus, Status, StatusPill, Tabs,
 } from "../components/ui";
+import { causeLabel } from "../labels";
 import { ACTIVE_INVESTIGATION, humanize, statusLabel } from "../status";
 import type { Investigation } from "../types";
 
@@ -12,19 +17,17 @@ export function InvestigationPage({ id }: { id: string }) {
     pollWhile: (inv) => ACTIVE_INVESTIGATION.has(inv.status) || inv.proposals.some((p) => p.status === "validating"),
   });
   const prevStatus = useRef<string | null>(null);
+  const notFound = load.state === "error" && load.status === 404;
 
   useEffect(() => {
+    if (notFound) document.title = "Investigation not found · Data Reliability Copilot";
     if (load.state !== "ok") return;
     const s = load.data.status;
-    if (prevStatus.current && prevStatus.current !== s) announce(`Investigation is now ${statusLabel("investigation", s).toLowerCase()}.`);
+    if (prevStatus.current && prevStatus.current !== s) announceStatus(`Investigation is now ${statusLabel("investigation", s).toLowerCase()}.`);
     prevStatus.current = s;
     document.title = `Investigation ${load.data.id} · Data Reliability Copilot`;
-  }, [load]);
+  }, [load, notFound]);
 
-  const notFound = load.state === "error" && load.status === 404;
-  useEffect(() => {
-    if (notFound) document.title = `Investigation not found · Data Reliability Copilot`;
-  }, [notFound]);
   return (
     <>
       <Breadcrumbs
@@ -34,45 +37,47 @@ export function InvestigationPage({ id }: { id: string }) {
           { label: "Investigation" },
         ]}
       />
-      {load.state !== "ok" && <PageTitle>{notFound ? "Investigation not found" : "Investigation"}</PageTitle>}
+      {/* one persistent h1 through loading → loaded so focus placed on it survives (C01) */}
+      <PageTitle>{notFound ? "Investigation not found" : <>Investigation {load.state === "ok" ? <code>{load.data.id}</code> : <code>{id}</code>}</>}</PageTitle>
       <LoadView load={load} onRetry={reload} notFound={<NotFound what="investigation" id={id} back={{ href: "#/incidents", label: "Back to incidents" }} />}>
-        {(inv) => <InvestigationView inv={inv} onChanged={reload} updatedAt={load.state === "ok" ? load.updatedAt : undefined} />}
+        {(inv) => <InvestigationView inv={inv} onChanged={reload} updatedAt={load.state === "ok" ? load.updatedAt : undefined} showTitle={false} />}
       </LoadView>
     </>
   );
 }
 
-export function InvestigationView({ inv, onChanged, updatedAt }: { inv: Investigation; onChanged?: () => void; updatedAt?: Date }) {
+export function InvestigationView({ inv, onChanged, updatedAt, showTitle = true }: { inv: Investigation; onChanged?: () => void; updatedAt?: Date; showTitle?: boolean }) {
   const d = inv.diagnosis;
   const known = new Set(inv.evidence.map((e) => e.id));
   const unsupported = new Set(inv.citation_report?.unsupported_facts ?? []);
   const refs = (ids: string[]) => ids.map((id) => <EvidenceRef key={id} id={id} exists={known.has(id)} />);
   const active = ACTIVE_INVESTIGATION.has(inv.status);
+  const ended = !d && !active; // cancelled / failed: hide empty sections
 
   return (
     <>
-      <PageTitle>Investigation <code>{inv.id}</code></PageTitle>
+      {showTitle && <PageTitle>Investigation <code>{inv.id}</code></PageTitle>}
       <ModeBanner mode={inv.mode} costStatus={inv.usage.cost_status} />
-      <div className="row" style={{ marginBottom: "var(--sp-4)" }}>
+      <Group gap="xs" mb="lg" wrap="wrap">
         <Status entity="investigation" value={inv.status} />
         {inv.outcome && <Status entity="outcome" value={inv.outcome} />}
-        <span className="muted">
+        <Text size="sm" c="dimmed">
           {inv.llm_provider === "fake" ? "Fake LLM (no model)" : `${inv.llm_provider} · ${inv.llm_model ?? "model unknown"}`} · prompt {inv.prompt_version}
           {active && updatedAt && <> · updates automatically · last checked {fmtClock(updatedAt)}</>}
-        </span>
-      </div>
+        </Text>
+      </Group>
 
       {!d ? (
         <NoDiagnosis inv={inv} onChanged={onChanged} />
       ) : (
         <>
           <Card title="Summary">
-            <p>{d.summary}</p>
+            <Text mb="sm">{d.summary}</Text>
             <dl className="kv">
               <dt>Estimated scope</dt>
               <dd>{d.estimated_scope}</dd>
               <dt>Self-reported confidence</dt>
-              <dd>{d.self_reported_confidence ?? "—"} <span className="muted">(model's own label, not a calibrated probability)</span></dd>
+              <dd>{d.self_reported_confidence ?? "—"} <Text span size="sm" c="dimmed">(the model's own label, not a calibrated probability)</Text></dd>
             </dl>
           </Card>
           <Tabs
@@ -84,10 +89,10 @@ export function InvestigationView({ inv, onChanged, updatedAt }: { inv: Investig
                 content: d.observed_facts.length ? (
                   d.observed_facts.map((f, i) => (
                     <div className="claim" key={i}>
-                      <div className="row"><EpistemicTag kind="fact" />{unsupported.has(f.statement) && <StatusPill status="fail" label="quote not found in evidence" />}</div>
-                      <p>{f.statement}</p>
+                      <Group gap="xs" mb={4}><EpistemicTag kind="fact" />{unsupported.has(f.statement) && <StatusPill status="fail" label="quote not found in evidence" />}</Group>
+                      <Text>{f.statement}</Text>
                       <blockquote>{quoted(f.quote)}</blockquote>
-                      <div className="row">Cites: {refs(f.evidence_ids)}</div>
+                      <Group gap="xs">Cites: {refs(f.evidence_ids)}</Group>
                     </div>
                   ))
                 ) : (
@@ -100,14 +105,14 @@ export function InvestigationView({ inv, onChanged, updatedAt }: { inv: Investig
                 content: d.hypotheses.length ? (
                   d.hypotheses.map((h) => (
                     <div className="claim hypothesis" key={h.id}>
-                      <div className="row">
+                      <Group gap="xs" mb={4}>
                         <EpistemicTag kind="hypothesis" />
                         <Status entity="hypothesis" value={h.status} />
-                        {h.cause_category && <code>{h.cause_category}</code>}
-                      </div>
-                      <p>{h.statement}</p>
-                      <div className="row">Supporting: {h.supporting_evidence_ids.length ? refs(h.supporting_evidence_ids) : "none"}</div>
-                      <div className="row">Contradicting: {h.contradicting_evidence_ids.length ? refs(h.contradicting_evidence_ids) : "none"}</div>
+                        {h.cause_category && <Text span size="sm" fw={600}>{causeLabel(h.cause_category)}</Text>}
+                      </Group>
+                      <Text>{h.statement}</Text>
+                      <Group gap="xs" mt={6}>Supporting: {h.supporting_evidence_ids.length ? refs(h.supporting_evidence_ids) : <Text span c="dimmed" size="sm">none</Text>}</Group>
+                      <Group gap="xs" mt={6}>Contradicting: {h.contradicting_evidence_ids.length ? refs(h.contradicting_evidence_ids) : <Text span c="dimmed" size="sm">none</Text>}</Group>
                     </div>
                   ))
                 ) : (
@@ -120,9 +125,9 @@ export function InvestigationView({ inv, onChanged, updatedAt }: { inv: Investig
                 content: (
                   <>
                     <h3>Missing information</h3>
-                    {d.missing_information.length ? <ul>{d.missing_information.map((m) => <li key={m}>{m}</li>)}</ul> : <p className="muted">None reported.</p>}
+                    {d.missing_information.length ? <ul>{d.missing_information.map((m) => <li key={m}>{m}</li>)}</ul> : <Text c="dimmed" size="sm">None reported.</Text>}
                     <h3>Contradicting evidence</h3>
-                    {d.contradicting_evidence.length ? <div className="row">{refs(d.contradicting_evidence)}</div> : <p className="muted">None reported.</p>}
+                    {d.contradicting_evidence.length ? <Group gap="xs">{refs(d.contradicting_evidence)}</Group> : <Text c="dimmed" size="sm">None reported.</Text>}
                   </>
                 ),
               },
@@ -133,25 +138,25 @@ export function InvestigationView({ inv, onChanged, updatedAt }: { inv: Investig
                   <>
                     <div className="claim">
                       <EpistemicTag kind="recommendation" />
-                      <p><strong>Next step:</strong> {d.next_step}</p>
+                      <Text mt={4}><strong>Next step:</strong> {d.next_step}</Text>
                     </div>
                     {d.recovery ? (
                       <div className="claim">
                         <EpistemicTag kind="recommendation" />
-                        <p><strong>Recovery playbook:</strong> <code>{d.recovery.playbook}</code></p>
-                        <p>{d.recovery.rationale}</p>
-                        <div className="row">Cites: {refs(d.recovery.evidence_ids)}</div>
+                        <Text mt={4}><strong>Recovery playbook:</strong> <code>{d.recovery.playbook}</code></Text>
+                        <Text>{d.recovery.rationale}</Text>
+                        <Group gap="xs" mt={6}>Cites: {refs(d.recovery.evidence_ids)}</Group>
                       </div>
                     ) : (
-                      <p className="muted">No recovery proposed (not supported by the evidence).</p>
+                      <Text c="dimmed" size="sm">No recovery proposed (not supported by the evidence).</Text>
                     )}
                     {inv.proposals.map((p) => (
-                      <div key={p.id} className="row proposal-row">
+                      <Group key={p.id} gap="sm" mt="md" align="flex-start" className="proposal-row">
                         {p.status === "validated" && <EpistemicTag kind="verified" />}
-                        <Status entity="proposal" value={p.status} prefix="Proposal" />
+                        <Status entity="proposal" value={p.status} prefix="Recovery" />
                         {p.latest_validation_run_id && <a href={`#/validation-runs/${p.latest_validation_run_id}`}>View sandbox validation</a>}
                         {p.status !== "validating" && p.status !== "approved" && p.status !== "rejected" && <ValidateButton proposalId={p.id} again={!!p.latest_validation_run_id} />}
-                      </div>
+                      </Group>
                     ))}
                   </>
                 ),
@@ -162,31 +167,25 @@ export function InvestigationView({ inv, onChanged, updatedAt }: { inv: Investig
         </>
       )}
 
-      <Card title="Citation check">
-        {inv.citation_report ? (
-          <dl className="kv">
-            <dt>References cited</dt>
-            <dd>{inv.citation_report.cited_ids}</dd>
-            <dt>References that exist</dt>
-            <dd>{inv.citation_report.existing_ids} {inv.citation_report.missing_ids.length > 0 && <StatusPill status="fail" label={`${inv.citation_report.missing_ids.length} missing`} />}</dd>
-            <dt>Facts with verbatim quote</dt>
-            <dd>{inv.citation_report.facts_supported} / {inv.citation_report.facts_total}</dd>
-            {inv.citation_report.enforcement && (
-              <>
-                <dt>Enforcement</dt>
-                <dd>{inv.citation_report.enforcement}</dd>
-              </>
-            )}
-          </dl>
-        ) : (
-          <EmptyState title={active ? "Runs after the diagnosis is produced" : "Not checked"} />
-        )}
-        <p className="muted">A reference that exists does not prove it supports the claim; quote matching is a deterministic lower bar, not semantic verification.</p>
-      </Card>
+      {!ended && (
+        <Card title="Citation check">
+          {inv.citation_report ? (
+            <SimpleGrid cols={{ base: 1, xs: 3 }} spacing="sm" mb="sm">
+              <Stat label="References cited" value={inv.citation_report.cited_ids} />
+              <Stat label="References that exist" value={inv.citation_report.existing_ids} warn={inv.citation_report.missing_ids.length > 0 ? `${inv.citation_report.missing_ids.length} missing` : undefined} />
+              <Stat label="Facts with verbatim quote" value={`${inv.citation_report.facts_supported} / ${inv.citation_report.facts_total}`} />
+            </SimpleGrid>
+          ) : (
+            <Text c="dimmed" size="sm" mb="sm">{active ? "Runs after the diagnosis is produced." : "Not checked."}</Text>
+          )}
+          {inv.citation_report?.enforcement && <Text size="sm" mb="sm"><strong>Enforcement:</strong> {inv.citation_report.enforcement}</Text>}
+          <Text size="sm" c="dimmed">A reference that exists does not prove it supports the claim; quote matching is a deterministic lower bar, not semantic verification.</Text>
+        </Card>
+      )}
 
-      <EvidenceList evidence={inv.evidence} active={active} />
+      {!ended && <EvidenceList evidence={inv.evidence} active={active} />}
 
-      <div className="grid">
+      <SimpleGrid cols={{ base: 1, lg: ended ? 1 : 2 }} spacing="lg">
         <Card title="Usage & limits">
           <dl className="kv">
             <dt>LLM calls</dt>
@@ -194,10 +193,7 @@ export function InvestigationView({ inv, onChanged, updatedAt }: { inv: Investig
             <dt>Tokens in / out</dt>
             <dd>{inv.usage.input_tokens ?? "unknown"} / {inv.usage.output_tokens ?? "unknown"}</dd>
             <dt>Cost</dt>
-            <dd>
-              {fmtCost(inv.usage.cost_usd, inv.usage.cost_status)}
-              {inv.usage.cost_status && inv.usage.cost_usd != null && <span className="muted"> ({inv.usage.cost_status})</span>}
-            </dd>
+            <dd>{fmtCost(inv.usage.cost_usd, inv.usage.cost_status)}</dd>
             <dt>Tool calls</dt>
             <dd>{inv.usage.tool_calls ?? (active ? "not started" : "—")}</dd>
             <dt>Wall time</dt>
@@ -217,22 +213,34 @@ export function InvestigationView({ inv, onChanged, updatedAt }: { inv: Investig
             ))}
           </dl>
         </Card>
-        <Card title="Tool calls">
-          <DataTable
-            caption="Bounded tool calls made during the investigation"
-            rows={inv.tool_calls.map((t, i) => ({ ...t, i }))}
-            rowKey={(t) => String(t.i)}
-            empty={<EmptyState title={active ? "No tool calls yet" : "No tool calls"} />}
-            columns={[
-              { header: "Tool", render: (t) => <code>{t.tool}</code> },
-              { header: "Status", render: (t) => <Status entity="tool" value={t.status} /> },
-              { header: "Rows", render: (t) => t.rows_returned ?? "—", numeric: true },
-              { header: "ms", render: (t) => t.duration_ms ?? "—", numeric: true },
-            ]}
-          />
-        </Card>
-      </div>
+        {!ended && (
+          <Card title="Tool calls">
+            <DataTable
+              caption="Bounded, read-only tool calls made during the investigation"
+              rows={inv.tool_calls.map((t, i) => ({ ...t, i }))}
+              rowKey={(t) => String(t.i)}
+              empty={<EmptyState title={active ? "No tool calls yet" : "No tool calls"} />}
+              columns={[
+                { header: "Tool", render: (t) => <code>{t.tool}</code> },
+                { header: "Status", render: (t) => <Status entity="tool" value={t.status} /> },
+                { header: "Rows", render: (t) => t.rows_returned ?? "—", numeric: true },
+                { header: "Time", render: (t) => (t.duration_ms != null ? fmtMs(t.duration_ms) : "—"), numeric: true },
+              ]}
+            />
+          </Card>
+        )}
+      </SimpleGrid>
     </>
+  );
+}
+
+function Stat({ label, value, warn }: { label: string; value: string | number; warn?: string }) {
+  return (
+    <Paper withBorder p="sm" radius="md">
+      <Text size="xs" c="dimmed" tt="uppercase" fw={600}>{label}</Text>
+      <Text size="xl" fw={700}>{value}</Text>
+      {warn && <StatusPill status="fail" label={warn} />}
+    </Paper>
   );
 }
 
@@ -241,19 +249,20 @@ function NoDiagnosis({ inv, onChanged }: { inv: Investigation; onChanged?: () =>
   if (inv.status === "queued" || inv.status === "running")
     return (
       <Card title={inv.status === "queued" ? "Waiting for a worker" : "Investigating"}>
-        <div className="state" role="status">
-          <span className="spinner" aria-hidden="true" />{" "}
-          {inv.status === "queued"
-            ? "Queued — a worker will pick this up shortly."
-            : "Running — collecting evidence and testing hypotheses."}{" "}
-          This page updates on its own; you can leave and come back.
-        </div>
+        <Group gap="md" wrap="nowrap" align="flex-start" mb="md" role="status">
+          <Loader type="dots" size="md" aria-hidden="true" />
+          <Text>
+            {inv.status === "queued" ? "Queued — a worker will pick this up shortly." : "Running — collecting evidence and testing hypotheses."}{" "}
+            This page updates on its own; you can leave and come back.
+          </Text>
+        </Group>
         <ActionButton
           label="Cancel investigation"
           busyLabel="Cancelling…"
           variant="danger"
+          icon={<IconPlayerStop size={16} />}
           disabledReason={canAct("investigator") ? undefined : "Requires the investigator role"}
-          confirm={{ prompt: "Cancel this investigation? It stops at its next step and cannot be resumed.", confirmLabel: "Yes, cancel it" }}
+          confirm={{ title: "Cancel this investigation?", prompt: "It stops at its next step and cannot be resumed. You can start a new one from the incident.", confirmLabel: "Yes, cancel it" }}
           onAction={async () => {
             const r = await api<{ result: string }>(`/investigations/${inv.id}/cancel`, { method: "POST" });
             announce(r.result === "cancelled" ? "Investigation cancelled." : "Cancellation requested; it stops at its next step.");
@@ -262,20 +271,23 @@ function NoDiagnosis({ inv, onChanged }: { inv: Investigation; onChanged?: () =>
         />
       </Card>
     );
-  if (inv.status === "cancelled")
+  if (inv.status === "cancelled") {
+    const who = inv.cancel_requested_by?.actor ?? last?.actor;
     return (
-      <Card title="Investigation cancelled">
-        <p>
-          Cancelled{last ? <> by <strong>{last.actor}</strong> at {fmtTime(last.at)}</> : null}. No diagnosis was produced.
-        </p>
-        <p><a href={`#/incidents/${inv.incident_id}`}>Back to the incident</a> to start a new investigation.</p>
-      </Card>
+      <Alert color="gray" variant="light" radius="lg" icon={<IconPlayerStop size={20} />} title="Investigation cancelled" mb="lg" role="note">
+        <Text size="sm" mb="xs">
+          Cancelled{who ? <> at the request of <strong>{who.replace(/^dev:/, "")}</strong></> : null}
+          {last ? <> · stopped {fmtTime(last.at)}</> : null}. No diagnosis was produced.
+        </Text>
+        <Button component="a" href={`#/incidents/${inv.incident_id}`} size="xs" variant="default">Back to the incident</Button>
+      </Alert>
     );
+  }
   return (
-    <Card title="Investigation failed">
-      <p>The investigation stopped before producing a diagnosis{last ? <> ({fmtTime(last.at)})</> : null}.</p>
-      <p><a href={`#/incidents/${inv.incident_id}`}>Back to the incident</a> to start a new investigation.</p>
-    </Card>
+    <Alert color="red" variant="light" radius="lg" icon={<IconAlertTriangle size={20} />} title="Investigation failed" mb="lg" role="note">
+      <Text size="sm" mb="xs">The investigation stopped before producing a diagnosis{last ? <> ({fmtTime(last.at)})</> : null}.</Text>
+      <Button component="a" href={`#/incidents/${inv.incident_id}`} size="xs" variant="default">Back to the incident to start a new one</Button>
+    </Alert>
   );
 }
 
@@ -284,6 +296,7 @@ function ValidateButton({ proposalId, again }: { proposalId: string; again: bool
     <ActionButton
       label={again ? "Validate again in sandbox" : "Validate in sandbox"}
       busyLabel="Starting validation…"
+      icon={<IconFlask2 size={16} />}
       disabledReason={canAct("investigator") ? undefined : "Requires the investigator role"}
       onAction={async () => {
         const r = await api<{ validation_run_id: string }>(`/proposals/${proposalId}/validations`, { method: "POST" });
@@ -304,43 +317,47 @@ function DecisionPanel({ inv }: { inv: Investigation }) {
       ref.current?.focus();
     }
   }, [inv.id]);
+  const approved = r.decision === "approve";
   return (
-    <section className="card decision" aria-labelledby={`dec-${inv.id}`}>
-      <header className="card-head">
-        <h2 id={`dec-${inv.id}`} ref={ref} tabIndex={-1}>Decision recorded</h2>
+    <Paper withBorder p="lg" radius="lg" mb="lg" className={`decision ${approved ? "decision-approve" : "decision-reject"}`} component="section" aria-labelledby={`dec-${inv.id}`}>
+      <Group justify="space-between" mb="sm">
+        <Group gap="sm">
+          <ThemeIcon variant="light" color={approved ? "teal" : "red"} radius="xl" size="lg" aria-hidden="true">{approved ? <IconThumbUp size={18} /> : <IconThumbDown size={18} />}</ThemeIcon>
+          <h2 id={`dec-${inv.id}`} ref={ref} tabIndex={-1} className="focus-heading">Decision recorded</h2>
+        </Group>
         <Status entity="decision" value={r.decision} />
-      </header>
+      </Group>
       <dl className="kv">
         <dt>Decision</dt>
-        <dd>{r.decision === "approve" ? "Diagnosis approved" : "Diagnosis rejected"}</dd>
+        <dd>{approved ? "Diagnosis approved" : "Diagnosis rejected"}</dd>
         <dt>Reviewer</dt>
-        <dd>{r.reviewer}</dd>
+        <dd>{r.reviewer.replace(/^dev:/, "")}</dd>
         <dt>When</dt>
         <dd>{fmtTime(r.at)}</dd>
         <dt>Note</dt>
-        <dd>{r.note ? `“${r.note}”` : <span className="muted">No note</span>}</dd>
+        <dd>{r.note ? `“${r.note}”` : <Text span c="dimmed" size="sm">No note</Text>}</dd>
       </dl>
-      <p className="muted">
-        Recording a decision does not change production. <a href={`#/incidents/${inv.incident_id}`}>Go to the incident</a> to see its status.
-      </p>
-    </section>
+      <Text size="sm" c="dimmed" mt="sm">
+        Recording a decision does not change production. <a href={`#/incidents/${inv.incident_id}`}>Go to the incident</a> to see or change its status.
+      </Text>
+    </Paper>
   );
 }
 
 function ReviewCard({ inv, onChanged }: { inv: Investigation; onChanged?: () => void }) {
   const draftKey = `drc.reviewDraft.${inv.id}`;
   const [note, setNoteState] = useState(() => sessionStorage.getItem(draftKey) ?? "");
+  const [resolve, setResolve] = useState(false); // opt-in: approving the diagnosis ≠ closing the incident (C07)
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const noteRef = useRef<HTMLTextAreaElement>(null);
+  if (inv.status !== "awaiting_review") return null;
+
   const setNote = (v: string) => {
     setNoteState(v);
     if (v) sessionStorage.setItem(draftKey, v);
     else sessionStorage.removeItem(draftKey);
+    if (v.trim()) setNoteError(null);
   };
-  const [resolve, setResolve] = useState(true);
-  const [noteError, setNoteError] = useState<string | null>(null);
-  const noteRef = useRef<HTMLTextAreaElement>(null);
-  const errId = useId();
-  if (inv.status !== "awaiting_review") return null;
-
   const decide = (decision: "approve" | "reject") => async () => {
     await api(`/investigations/${inv.id}/review`, {
       method: "POST",
@@ -358,46 +375,67 @@ function ReviewCard({ inv, onChanged }: { inv: Investigation; onChanged?: () => 
     return false;
   };
 
+  const proposal = inv.proposals[0];
+  const validated = proposal?.status === "validated";
+  const recoveryLine = !proposal ? (
+    <Text size="sm" c="dimmed">No recovery was proposed for this diagnosis.</Text>
+  ) : validated ? (
+    <Group gap="xs"><EpistemicTag kind="verified" /><Text size="sm">Recovery <code>{proposal.playbook}</code> passed sandbox validation. <a href={`#/validation-runs/${proposal.latest_validation_run_id}`}>See results</a></Text></Group>
+  ) : (
+    <Alert color="yellow" variant="light" radius="md" icon={<IconAlertTriangle size={18} />} p="sm" role="note">
+      <Text size="sm">Recovery <code>{proposal.playbook}</code> is <strong>{statusLabel("proposal", proposal.status).toLowerCase()}</strong> and has not passed sandbox validation. Consider validating it before approving.</Text>
+    </Alert>
+  );
+
   return (
-    <Card title="Human review">
-      <p className="muted">Your decision is recorded with your name and note. It does not apply anything to production in this phase.</p>
-      {getRole() !== "approver" ? (
-        <AccessDenied message="Only approvers can record a review decision (the API enforces this too)." needed="approver" />
-      ) : (
-        <>
-          <label htmlFor={`note-${inv.id}`}>Review note <span className="muted">(required to reject)</span></label>
-          <textarea
-            id={`note-${inv.id}`}
-            ref={noteRef}
-            value={note}
-            onChange={(e) => { setNote(e.target.value); if (e.target.value.trim()) setNoteError(null); }}
-            rows={3}
-            aria-invalid={!!noteError}
-            aria-describedby={noteError ? errId : undefined}
-          />
-          {noteError && <p id={errId} className="field-error" role="alert"><span aria-hidden="true">✕ </span>{noteError}</p>}
-          <label className="check">
-            <input type="checkbox" checked={resolve} onChange={(e) => setResolve(e.target.checked)} /> When approving, also mark the incident as resolved
-          </label>
-          <div className="row review-actions">
-            <ActionButton
-              label="Approve diagnosis"
-              busyLabel="Recording…"
-              variant="primary"
-              confirm={{ prompt: <>Approve this diagnosis{resolve ? " and resolve the incident" : ""}? The decision is recorded and cannot be undone.</>, confirmLabel: "Yes, approve" }}
-              onAction={decide("approve")}
+    <Card title={<Group gap="xs"><IconGavel size={20} aria-hidden="true" /> Human review</Group>}>
+      <Stack gap="sm">
+        <Paper withBorder p="sm" radius="md" className="review-context">
+          <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={4}>What you are deciding on</Text>
+          <Group gap="xs" mb={6}>{inv.outcome && <Status entity="outcome" value={inv.outcome} />}<Text size="sm">{inv.diagnosis?.summary}</Text></Group>
+          {recoveryLine}
+        </Paper>
+        {getRole() !== "approver" ? (
+          <AccessDenied message="Approvers record the decision on this diagnosis; you can read everything here." needed="approver" />
+        ) : (
+          <>
+            <Textarea
+              ref={noteRef}
+              label="Review note"
+              description="Required to reject; recommended to approve. Saved with your decision."
+              value={note}
+              onChange={(e) => setNote(e.currentTarget.value)}
+              autosize
+              minRows={3}
+              error={noteError}
             />
-            <ActionButton
-              label="Reject diagnosis"
-              busyLabel="Recording…"
-              variant="danger"
-              confirm={{ prompt: "Reject this diagnosis? The incident stays unresolved so another investigation can be started.", confirmLabel: "Yes, reject" }}
-              precheck={noteGiven}
-              onAction={decide("reject")}
-            />
-          </div>
-        </>
-      )}
+            <Checkbox label="Also mark the incident as resolved when approving" checked={resolve} onChange={(e) => setResolve(e.currentTarget.checked)} />
+            <Group gap="sm" align="flex-start">
+              <ActionButton
+                label="Approve diagnosis"
+                busyLabel="Recording…"
+                variant="primary"
+                icon={<IconCircleCheck size={16} />}
+                confirm={{
+                  title: "Approve this diagnosis?",
+                  prompt: <>{!validated && proposal ? "The proposed recovery has not passed sandbox validation. " : ""}The decision is recorded with your name{resolve ? " and the incident is marked resolved (it can be reopened)" : ""}. It cannot be undone.</>,
+                  confirmLabel: "Yes, approve",
+                }}
+                onAction={decide("approve")}
+              />
+              <ActionButton
+                label="Reject diagnosis"
+                busyLabel="Recording…"
+                variant="danger"
+                icon={<IconThumbDown size={16} />}
+                confirm={{ title: "Reject this diagnosis?", prompt: "The incident stays unresolved so another investigation can be started. The decision cannot be undone.", confirmLabel: "Yes, reject" }}
+                precheck={noteGiven}
+                onAction={decide("reject")}
+              />
+            </Group>
+          </>
+        )}
+      </Stack>
     </Card>
   );
 }
@@ -421,85 +459,69 @@ function quoted(q: string) {
 }
 
 function EvidenceList({ evidence, active }: { evidence: Investigation["evidence"]; active: boolean }) {
-  const [allOpen, setAllOpen] = useState<{ open: boolean; v: number }>({ open: false, v: 0 });
-  return (
-    <Card
-      title={`Evidence (${evidence.length})`}
-      actions={
-        evidence.length > 0 && (
-          <button type="button" className="btn" aria-expanded={allOpen.open} onClick={() => setAllOpen((a) => ({ open: !a.open, v: a.v + 1 }))}>
-            {allOpen.open ? "Collapse all" : "Expand all"}
-          </button>
-        )
-      }
-    >
-      <p className="muted">Evidence is untrusted data collected by bounded tools. Citation chips above open the item they point to.</p>
-      {evidence.length ? (
-        evidence.map((e) => <EvidenceItem key={e.id} e={e} allOpen={allOpen} />)
-      ) : (
-        <EmptyState title={active ? "Evidence appears here as tools return results" : "No evidence collected"} />
-      )}
-    </Card>
-  );
-}
-
-function EvidenceItem({ e, allOpen }: { e: Investigation["evidence"][number]; allOpen: { open: boolean; v: number } }) {
-  const [open, setOpen] = useState(false);
-  const [origin, setOrigin] = useState<string | null>(null);
-  const ref = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (allOpen.v) setOpen(allOpen.open);
-  }, [allOpen]);
+  const [open, setOpen] = useState<string[]>([]);
+  const [origin, setOrigin] = useState<{ id: string; origin: string } | null>(null);
   useEffect(() => {
     const on = (ev: Event) => {
       const { target, origin: o } = (ev as CustomEvent<{ target: string; origin: string }>).detail;
-      if (target !== e.id) return;
-      setOrigin(o);
-      setOpen(true);
-      requestAnimationFrame(() => revealAndFocus(ref.current));
+      setOrigin({ id: target, origin: o });
+      setOpen((cur) => (cur.includes(target) ? cur : [...cur, target]));
+      requestAnimationFrame(() => requestAnimationFrame(() => revealAndFocus(document.getElementById(`ev-${target}`))));
     };
     addEventListener("drc:cite", on);
     return () => removeEventListener("drc:cite", on);
-  }, [e.id]);
-  const first = (e.content ?? "").split("\n")[0];
+  }, []);
+  const all = open.length === evidence.length && evidence.length > 0;
   return (
-    <article className="evidence" id={`ev-${e.id}`} ref={ref} tabIndex={-1} aria-label={`Evidence ${e.id}`}>
-      <details open={open} onToggle={(ev) => setOpen((ev.currentTarget as HTMLDetailsElement).open)}>
-        <summary>
-          <code>{e.id}</code> <StatusPill status="info" label={humanize(e.kind)} /> <Status entity="access" value={e.access} />
-          {!open && first && <span className="evidence-preview muted">{first.length > 110 ? first.slice(0, 110) + "…" : first}</span>}
-        </summary>
-        <dl className="kv">
-          <dt>Source</dt>
-          <dd className="mono">{e.source}</dd>
-          <dt>Locator</dt>
-          <dd className="mono">{e.locator}</dd>
-          <dt>Run</dt>
-          <dd className="mono">{e.pipeline_run_id ?? "—"}</dd>
-          <dt>Collected</dt>
-          <dd className="mono">{fmtTime(e.collected_at)}</dd>
-          <dt>Version</dt>
-          <dd className="mono">{e.version ?? "—"}</dd>
-        </dl>
-        {e.redacted || e.content == null ? (
-          <AccessDenied message="Content is restricted for your role." needed="investigator" />
-        ) : (
-          <pre tabIndex={0} aria-label={`Evidence ${e.id} content (untrusted data)`}>{e.content}</pre>
-        )}
-      </details>
-      {origin && (
-        <button
-          type="button"
-          className="btn btn-link"
-          onClick={() => {
-            const o = document.getElementById(origin);
-            revealAndFocus(o);
-            setOrigin(null);
-          }}
-        >
-          <span aria-hidden="true">↩ </span>Back to the claim
-        </button>
+    <Card
+      title={`Evidence (${evidence.length})`}
+      actions={evidence.length > 0 && (
+        <Button variant="default" size="xs" aria-expanded={all} onClick={() => setOpen(all ? [] : evidence.map((e) => e.id))}>{all ? "Collapse all" : "Expand all"}</Button>
       )}
-    </article>
+    >
+      <Text size="sm" c="dimmed" mb="sm">Untrusted data collected by bounded, read-only tools. Citation chips open the item they point to.</Text>
+      {evidence.length ? (
+        <Accordion multiple value={open} onChange={setOpen} variant="contained" radius="md" chevronPosition="left" className="evidence-acc">
+          {evidence.map((e) => {
+            const first = (e.content ?? "").split("\n")[0];
+            return (
+              <Accordion.Item key={e.id} value={e.id} id={`ev-${e.id}`} tabIndex={-1} className="evidence" aria-label={`Evidence ${e.id}`}>
+                <Accordion.Control>
+                  <Group gap="xs" wrap="wrap">
+                    <code>{e.id}</code>
+                    <StatusPill status="info" label={humanize(e.kind)} />
+                    <Status entity="access" value={e.access} />
+                  </Group>
+                  {!open.includes(e.id) && first && <Text size="xs" c="dimmed" ff="monospace" mt={4} lineClamp={1}>{first}</Text>}
+                </Accordion.Control>
+                <Accordion.Panel>
+                  <dl className="kv kv-mono">
+                    <dt>Source</dt>
+                    <dd>{e.source}</dd>
+                    <dt>Locator</dt>
+                    <dd>{e.locator}</dd>
+                    <dt>Run</dt>
+                    <dd>{e.pipeline_run_id ?? "—"}</dd>
+                    <dt>Collected</dt>
+                    <dd>{fmtTime(e.collected_at)}</dd>
+                    <dt>Version</dt>
+                    <dd>{e.version ?? "—"}</dd>
+                  </dl>
+                  {e.redacted || e.content == null ? (
+                    <AccessDenied message="Content is restricted for your role." needed="investigator" />
+                  ) : (
+                    <pre tabIndex={0} aria-label={`Evidence ${e.id} content (untrusted data)`}>{e.content}</pre>
+                  )}
+                  {origin?.id === e.id && <BackToClaim origin={origin.origin} onDone={() => setOrigin(null)} />}
+                </Accordion.Panel>
+              </Accordion.Item>
+            );
+          })}
+        </Accordion>
+      ) : (
+        <EmptyState title={active ? "Evidence appears here as tools return results" : "No evidence collected"} icon={active ? <IconClockHour4 size={22} /> : undefined} />
+      )}
+      <Text size="xs" c="dimmed" mt="sm"><IconShieldCheck size={12} aria-hidden="true" /> Evidence ids are content-addressed: the same fact always has the same id.</Text>
+    </Card>
   );
 }

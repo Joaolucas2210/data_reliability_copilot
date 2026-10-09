@@ -1,53 +1,96 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Badge, Group, Paper, Select, SimpleGrid, Stack, Text, Textarea, TextInput } from "@mantine/core";
+import { IconCircleCheck, IconCircleDot, IconFlag, IconPlayerPlay, IconRefresh, IconSearch, IconX } from "@tabler/icons-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { announce, api, canAct, useApi } from "../api";
 import { ActionButton, Breadcrumbs, Card, DataTable, EmptyState, fmtTime, LoadView, NotFound, PageTitle, Status, Timeline } from "../components/ui";
-import { humanize, OPEN_INVESTIGATION, statusLabel } from "../status";
+import { checkLabel, checkResult, eventSentence } from "../labels";
+import { OPEN_INVESTIGATION, statusLabel } from "../status";
 import type { AuditEvent, Incident, IncidentDetail, QualityCheckResult } from "../types";
 
 const INCIDENT_STATUSES = ["open", "investigating", "awaiting_review", "resolved", "dismissed"];
 const FILTER_LABEL = (s: string) => (s === "unresolved" ? "Unresolved (open, investigating or awaiting review)" : statusLabel("incident", s));
+const SEVERITY_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
-export function IncidentList({ initialStatus = "" }: { initialStatus?: string }) {
+export function IncidentList({ initialStatus = "", initialQuery = "", initialSort = "newest" }: { initialStatus?: string; initialQuery?: string; initialSort?: string }) {
   const [status, setStatus] = useState(initialStatus);
-  const [load, reload] = useApi<Incident[]>(`/incidents${status ? `?status=${status}` : ""}`);
+  const [query, setQuery] = useState(initialQuery);
+  const [sort, setSort] = useState(initialSort);
+  const [load, reload] = useApi<Incident[]>(`/incidents?limit=200${status ? `&status=${status}` : ""}`);
   const changed = useRef(false);
 
   const choose = (s: string) => {
     setStatus(s);
     changed.current = true;
-    // keep the filter in the URL (reload/back/share) without adding a history entry per change
-    history.replaceState(null, "", `#/incidents${s ? `?status=${s}` : ""}`);
   };
+
+  // keep filter, search and sort in the URL (reload/back/share) without adding a history entry per change
+  useEffect(() => {
+    const qs = new URLSearchParams();
+    if (status) qs.set("status", status);
+    if (query) qs.set("q", query);
+    if (sort !== "newest") qs.set("sort", sort);
+    history.replaceState(null, "", `#/incidents${qs.size ? `?${qs}` : ""}`);
+  }, [status, query, sort]);
+
+  const rows = useMemo(() => {
+    if (load.state !== "ok") return [];
+    const q = query.trim().toLowerCase();
+    const filtered = q ? load.data.filter((i) => `${i.title} ${i.id} ${i.dataset_id ?? ""}`.toLowerCase().includes(q)) : load.data;
+    const sorted = [...filtered];
+    if (sort === "oldest") sorted.reverse();
+    if (sort === "severity") sorted.sort((a, b) => (SEVERITY_RANK[a.severity] ?? 9) - (SEVERITY_RANK[b.severity] ?? 9));
+    return sorted;
+  }, [load, query, sort]);
+
   useEffect(() => {
     if (load.state === "ok" && changed.current) {
       changed.current = false;
-      announce(`${load.data.length} incident${load.data.length === 1 ? "" : "s"}${status ? ` with status ${FILTER_LABEL(status).toLowerCase()}` : ""}.`);
+      announce(`${rows.length} incident${rows.length === 1 ? "" : "s"} shown${status ? ` with status ${FILTER_LABEL(status).toLowerCase()}` : ""}.`);
     }
-  }, [load, status]);
+  }, [load, rows.length, status]);
 
   return (
     <>
       <PageTitle>Incidents</PageTitle>
-      <div className="row filter-row">
-        <label>
-          Status{" "}
-          <select value={status} onChange={(e) => choose(e.target.value)}>
-            <option value="">All statuses</option>
-            <option value="unresolved">Unresolved</option>
-            {INCIDENT_STATUSES.map((s) => <option key={s} value={s}>{statusLabel("incident", s)}</option>)}
-          </select>
-        </label>
-        {load.state === "ok" && <span className="muted">{load.data.length} shown{load.data.length === 200 ? " (first 200)" : ""}</span>}
-      </div>
+      <Paper withBorder p="md" mb="lg" className="filters">
+        <Group align="flex-end" gap="md" wrap="wrap">
+          <Select
+            label="Status"
+            value={status}
+            onChange={(v) => choose(v ?? "")}
+            allowDeselect={false}
+            w={220}
+            data={[
+              { value: "", label: "All statuses" },
+              { value: "unresolved", label: "Unresolved" },
+              ...INCIDENT_STATUSES.map((s) => ({ value: s, label: statusLabel("incident", s) })),
+            ]}
+          />
+          <TextInput
+            label="Search"
+            placeholder="Title, id or dataset"
+            leftSection={<IconSearch size={16} />}
+            value={query}
+            onChange={(e) => { setQuery(e.currentTarget.value); changed.current = true; }}
+            w={260}
+            rightSection={query ? (
+              <button type="button" className="icon-btn" aria-label="Clear search" onClick={() => { setQuery(""); changed.current = true; }}><IconX size={16} /></button>
+            ) : null}
+          />
+          <Select label="Sort" value={sort} onChange={(v) => setSort(v ?? "newest")} allowDeselect={false} w={180}
+            data={[{ value: "newest", label: "Newest first" }, { value: "oldest", label: "Oldest first" }, { value: "severity", label: "Severity" }]} />
+          {load.state === "ok" && <Text size="sm" c="dimmed" ml="auto">{rows.length} of {load.data.length} shown</Text>}
+        </Group>
+      </Paper>
       <LoadView load={load} onRetry={reload}>
-        {(rows) => (
+        {() => (
           <IncidentTable
             rows={rows}
             empty={
-              status ? (
+              status || query ? (
                 <EmptyState
-                  title={`No incidents with status “${FILTER_LABEL(status)}”`}
-                  hint={<button type="button" className="btn" onClick={() => choose("")}>Show all incidents</button>}
+                  title={query ? `No incidents match “${query}”` : `No incidents with status “${FILTER_LABEL(status)}”`}
+                  hint={<button type="button" className="btn-link" onClick={() => { choose(""); setQuery(""); }}>Show all incidents</button>}
                 />
               ) : (
                 <EmptyState title="No incidents yet" hint="Incidents appear here when a quality check fails after a pipeline run." />
@@ -63,17 +106,17 @@ export function IncidentList({ initialStatus = "" }: { initialStatus?: string })
 export function IncidentTable({ rows, empty }: { rows: Incident[]; empty?: ReactNode }) {
   return (
     <DataTable
-      caption="Incidents, newest first"
+      caption="Incidents"
       rows={rows}
       rowKey={(r) => r.id}
       empty={empty ?? <EmptyState title="No incidents yet" />}
       columns={[
-        { header: "Incident", render: (r) => <a href={`#/incidents/${r.id}`}>{r.title}</a> },
+        { header: "Incident", render: (r) => <a href={`#/incidents/${r.id}`} className="row-title">{r.title}</a> },
         { header: "Severity", render: (r) => <Status entity="severity" value={r.severity} /> },
         { header: "Status", render: (r) => <Status entity="incident" value={r.status} /> },
         { header: "Dataset", render: (r) => <code>{r.dataset_id ?? "—"}</code> },
         { header: "Occurrences", render: (r) => r.occurrences, numeric: true },
-        { header: "Opened", render: (r) => fmtTime(r.opened_at) },
+        { header: "Opened", render: (r) => <span className="nowrap">{fmtTime(r.opened_at)}</span> },
       ]}
     />
   );
@@ -82,38 +125,34 @@ export function IncidentTable({ rows, empty }: { rows: Incident[]; empty?: React
 export function IncidentDetailPage({ id }: { id: string }) {
   const [load, reload] = useApi<IncidentDetail>(`/incidents/${id}`);
   const key = useRef(`ui-start-${id}-${Date.now()}`); // one idempotency key per page visit = per intent
+  const notFound = load.state === "error" && load.status === 404;
 
   useEffect(() => {
     if (load.state === "ok") document.title = `${load.data.incident.title} · Incident · Data Reliability Copilot`;
-  }, [load]);
+    if (notFound) document.title = "Incident not found · Data Reliability Copilot";
+  }, [load, notFound]);
 
   const start = async () => {
-    const r = await api<{ investigation_id: string }>(`/incidents/${id}/investigations`, {
-      method: "POST",
-      headers: { "Idempotency-Key": key.current },
-    });
+    const r = await api<{ investigation_id: string }>(`/incidents/${id}/investigations`, { method: "POST", headers: { "Idempotency-Key": key.current } });
     announce("Investigation started. Opening it.");
     location.hash = `#/investigations/${r.investigation_id}`;
   };
 
-  const notFound = load.state === "error" && load.status === 404;
-  useEffect(() => {
-    if (notFound) document.title = `Incident not found · Data Reliability Copilot`;
-  }, [notFound]);
   return (
     <>
       <Breadcrumbs items={[{ href: "#/incidents", label: "Incidents" }, { label: load.state === "ok" ? "Incident" : id }]} />
-      {load.state !== "ok" && <PageTitle>{notFound ? "Incident not found" : "Incident"}</PageTitle>}
+      {/* one persistent h1: its text changes with the load state, the element (and focus on it) survives (C01) */}
+      <PageTitle>{load.state === "ok" ? load.data.incident.title : notFound ? "Incident not found" : "Incident"}</PageTitle>
       <LoadView load={load} onRetry={reload} notFound={<NotFound what="incident" id={id} back={{ href: "#/incidents", label: "Back to incidents" }} />}>
         {(d) => (
           <>
-            <PageTitle>{d.incident.title}</PageTitle>
-            <div className="row" style={{ marginBottom: "var(--sp-4)" }}>
+            <Group gap="xs" mb="lg">
               <Status entity="incident" value={d.incident.status} />
               <Status entity="severity" value={d.incident.severity} />
-              <code>{d.incident.id}</code>
-            </div>
-            <IncidentBody d={d} onStart={start} />
+              <Text size="sm" c="dimmed" ff="monospace">{d.incident.id}</Text>
+              {d.incident.dataset_id && <Badge variant="outline" color="gray" radius="sm" tt="none" ff="monospace">{d.incident.dataset_id}</Badge>}
+            </Group>
+            <IncidentBody d={d} onStart={start} onChanged={reload} />
           </>
         )}
       </LoadView>
@@ -121,7 +160,7 @@ export function IncidentDetailPage({ id }: { id: string }) {
   );
 }
 
-export function IncidentBody({ d, onStart }: { d: IncidentDetail; onStart?: () => Promise<void> }) {
+export function IncidentBody({ d, onStart, onChanged }: { d: IncidentDetail; onStart?: () => Promise<void>; onChanged?: () => void }) {
   const closed = d.incident.status === "resolved" || d.incident.status === "dismissed";
   const active = d.investigations.find((i) => OPEN_INVESTIGATION.has(i.status));
   const startAction = onStart && !closed && (
@@ -129,9 +168,10 @@ export function IncidentBody({ d, onStart }: { d: IncidentDetail; onStart?: () =
       label={active ? "Start another investigation" : "Start investigation"}
       busyLabel="Starting…"
       variant={active ? "secondary" : "primary"}
+      icon={<IconPlayerPlay size={16} />}
       onAction={onStart}
       disabledReason={canAct("investigator") ? undefined : "Requires the investigator role"}
-      confirm={active ? { prompt: <>Investigation <code>{active.id}</code> is still {statusLabel("investigation", active.status).toLowerCase()}. Start another one anyway?</>, confirmLabel: "Yes, start another" } : undefined}
+      confirm={active ? { title: "Start another investigation?", prompt: <>Investigation <code>{active.id}</code> is still {statusLabel("investigation", active.status).toLowerCase()}. Start another one anyway?</>, confirmLabel: "Yes, start another" } : undefined}
     />
   );
   return (
@@ -139,37 +179,84 @@ export function IncidentBody({ d, onStart }: { d: IncidentDetail; onStart?: () =
       <Card title="Triggering checks">
         <CheckTable rows={d.checks} />
       </Card>
-      <div className="grid">
+      <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
+        <Card title="Investigations" actions={startAction}>
+          {active && (
+            <Paper withBorder p="sm" mb="sm" className="soft-info" role="note">
+              <Text size="sm">Investigation <a href={`#/investigations/${active.id}`}>{active.id}</a> is {statusLabel("investigation", active.status).toLowerCase()}.</Text>
+            </Paper>
+          )}
+          {closed && <Text size="sm" c="dimmed" mb="sm">This incident is {statusLabel("incident", d.incident.status).toLowerCase()}; reopen it to start new investigations.</Text>}
+          {d.investigations.length ? (
+            <Stack gap="xs">
+              {d.investigations.map((i) => (
+                <Paper key={i.id} withBorder p="sm" className="inv-item">
+                  <Group justify="space-between" gap="xs" wrap="wrap">
+                    <a href={`#/investigations/${i.id}`} className="mono">{i.id}</a>
+                    <Group gap={6}>
+                      <Status entity="investigation" value={i.status} />
+                      {i.outcome && <Status entity="outcome" value={i.outcome} />}
+                    </Group>
+                  </Group>
+                  <Text size="xs" c="dimmed" mt={4}>Started {fmtTime(i.created_at)}{i.mode === "fake" ? " · fake LLM" : ""}</Text>
+                </Paper>
+              ))}
+            </Stack>
+          ) : (
+            <EmptyState title="Not investigated yet" hint={closed ? undefined : "Start an investigation to collect evidence and get a diagnosis."} />
+          )}
+        </Card>
         <Card title="Timeline">
           <Timeline items={d.timeline.map(eventItem)} />
         </Card>
-        <Card title="Investigations" actions={startAction}>
-          {active && (
-            <p className="banner tone-info" role="note">
-              Investigation <a href={`#/investigations/${active.id}`}>{active.id}</a> is {statusLabel("investigation", active.status).toLowerCase()}.
-            </p>
-          )}
-          {closed && <p className="muted">This incident is {statusLabel("incident", d.incident.status).toLowerCase()}; no new investigations can be started.</p>}
-          {d.investigations.length ? (
-            <ul className="inv-list">
-              {d.investigations.map((i) => (
-                <li key={i.id}>
-                  <a href={`#/investigations/${i.id}`}>{i.id}</a>
-                  <span className="row">
-                    <Status entity="investigation" value={i.status} />
-                    {i.outcome && <Status entity="outcome" value={i.outcome} />}
-                    {i.mode === "fake" && <span className="muted">fake LLM</span>}
-                  </span>
-                  <span className="muted">started {fmtTime(i.created_at)}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState title="Not investigated yet" />
-          )}
-        </Card>
-      </div>
+      </SimpleGrid>
+      {onChanged && <IncidentDecision d={d} onChanged={onChanged} />}
     </>
+  );
+}
+
+/** Human closure / reopening of the incident itself (approver), with a note; audited by the API. */
+function IncidentDecision({ d, onChanged }: { d: IncidentDetail; onChanged: () => void }) {
+  const [note, setNote] = useState("");
+  const closed = d.incident.status === "resolved" || d.incident.status === "dismissed";
+  const allowed = canAct("approver");
+  const change = (to: "resolved" | "dismissed" | "open", msg: string) => async () => {
+    await api(`/incidents/${d.incident.id}/status`, { method: "POST", body: JSON.stringify({ to, note }) });
+    setNote("");
+    announce(msg);
+    onChanged();
+  };
+  return (
+    <Card title={closed ? "Incident closed" : "Close the incident"}>
+      <Text size="sm" c="dimmed" mb="sm">
+        {closed
+          ? `Marked ${statusLabel("incident", d.incident.status).toLowerCase()}${d.incident.closed_at ? ` at ${fmtTime(d.incident.closed_at)}` : ""}. Reopen it if the problem is not actually fixed.`
+          : "Resolve when the report is confirmed correct again; dismiss when this was not a real problem. Both are recorded with your note and can be reopened."}
+      </Text>
+      {allowed ? (
+        <>
+          <Textarea label="Note (optional)" value={note} onChange={(e) => setNote(e.currentTarget.value)} autosize minRows={2} mb="sm" maw={560} />
+          <Group gap="sm" align="flex-start">
+            {closed ? (
+              <ActionButton label="Reopen incident" busyLabel="Reopening…" icon={<IconRefresh size={16} />}
+                confirm={{ title: "Reopen this incident?", prompt: "It goes back to Open so it can be investigated again.", confirmLabel: "Yes, reopen" }}
+                onAction={change("open", "Incident reopened.")} successMessage="Incident reopened." />
+            ) : (
+              <>
+                <ActionButton label="Mark resolved" busyLabel="Saving…" variant="primary" icon={<IconCircleCheck size={16} />}
+                  confirm={{ title: "Mark this incident resolved?", prompt: "Use this when the report is confirmed correct again. You can reopen it later.", confirmLabel: "Yes, resolve" }}
+                  onAction={change("resolved", "Incident marked resolved.")} successMessage="Incident marked resolved." />
+                <ActionButton label="Dismiss" busyLabel="Saving…" icon={<IconFlag size={16} />}
+                  confirm={{ title: "Dismiss this incident?", prompt: "Use this when it was not a real problem. You can reopen it later.", confirmLabel: "Yes, dismiss" }}
+                  onAction={change("dismissed", "Incident dismissed.")} successMessage="Incident dismissed." />
+              </>
+            )}
+          </Group>
+        </>
+      ) : (
+        <Text size="sm" c="dimmed">Approvers can resolve, dismiss or reopen incidents.</Text>
+      )}
+    </Card>
   );
 }
 
@@ -177,47 +264,48 @@ function eventItem(e: AuditEvent) {
   const detail = e.detail ?? {};
   const decision = typeof detail.decision === "string" ? detail.decision : null;
   const note = typeof detail.note === "string" && detail.note ? detail.note : null;
+  const done = e.to_status && ["resolved", "completed", "passed", "validated", "approved"].includes(e.to_status);
   return {
     key: String(e.id),
     at: e.at,
+    icon: done ? <IconCircleCheck size={14} /> : <IconCircleDot size={12} />,
     title: (
       <>
-        <strong>{humanize(e.action)}</strong> {humanize(e.entity_type).toLowerCase()} <EntityLink type={e.entity_type} id={e.entity_id} />
-        {e.to_status && <> {e.from_status ? humanize(e.from_status) : "∅"} → {humanize(e.to_status)}</>}
-        {decision && <> · <Status entity="decision" value={decision} /></>}
+        {eventSentence(e)} {decision && <Status entity="decision" value={decision} />} <EntityLink type={e.entity_type} id={e.entity_id} />
       </>
     ),
     detail: (
       <>
-        by {e.actor}
-        {note && <> · note: “{note}”</>}
-        {e.trace_id && <> · trace <code>{e.trace_id.slice(0, 16)}</code></>}
+        by {e.actor.replace(/^dev:/, "")}
+        {note && <> · “{note}”</>}
       </>
     ),
   };
-}
-
-export function CheckTable({ rows }: { rows: QualityCheckResult[] }) {
-  return (
-    <DataTable
-      caption="Quality checks (type distinguishes contract, test, freshness, invariant, anomaly)"
-      rows={rows}
-      rowKey={(r) => r.id}
-      columns={[
-        { header: "Check", render: (r) => <code>{r.check_name}</code> },
-        { header: "Type", render: (r) => humanize(r.check_type) },
-        { header: "Status", render: (r) => <Status entity="check" value={r.status} /> },
-        { header: "Observed", render: (r) => r.observed_value ?? "—" },
-        { header: "Expected", render: (r) => r.expected ?? "—" },
-        { header: "Failures", render: (r) => r.failures ?? "—", numeric: true },
-      ]}
-    />
-  );
 }
 
 const ENTITY_ROUTE: Record<string, string> = { incident: "#/incidents/", investigation: "#/investigations/", validation: "#/validation-runs/" };
 
 function EntityLink({ type, id }: { type: string; id: string }) {
   const base = ENTITY_ROUTE[type];
-  return base ? <a href={base + id} className="mono">{id}</a> : <code>{id}</code>;
+  return base ? <a href={base + id} className="mono entity-link">{id}</a> : null;
 }
+
+export function CheckTable({ rows }: { rows: QualityCheckResult[] }) {
+  return (
+    <DataTable
+      caption="Failing quality checks for this run"
+      rows={rows}
+      rowKey={(r) => r.id}
+      columns={[
+        { header: "Check", render: (r) => <><span className="cell-title">{checkLabel(r.check_name)}</span><code className="cell-code">{r.check_name}</code></> },
+        { header: "Type", render: (r) => CHECK_TYPE[r.check_type] ?? r.check_type },
+        { header: "Status", render: (r) => <Status entity="check" value={r.status} /> },
+        { header: "Result", render: (r) => checkResult(r) },
+      ]}
+    />
+  );
+}
+
+const CHECK_TYPE: Record<string, string> = {
+  schema_contract: "Schema contract", data_test: "Data test", freshness: "Freshness", invariant: "Business invariant", anomaly: "Anomaly", model_run: "Model build",
+};
