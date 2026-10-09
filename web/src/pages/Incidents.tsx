@@ -1,26 +1,30 @@
-import { Badge, Group, Paper, Select, SimpleGrid, Stack, Text, Textarea, TextInput } from "@mantine/core";
+import { Alert, Badge, Button, Group, Paper, Select, SimpleGrid, Stack, Text, Textarea, TextInput } from "@mantine/core";
 import { IconCircleCheck, IconCircleDot, IconFlag, IconPlayerPlay, IconRefresh, IconSearch, IconX } from "@tabler/icons-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { announce, api, canAct, useApi } from "../api";
-import { ActionButton, Breadcrumbs, Card, DataTable, EmptyState, fmtTime, LoadView, NotFound, PageTitle, Status, Timeline } from "../components/ui";
+import { ActionButton, Breadcrumbs, Card, DataTable, EmptyState, fmtTime, LoadView, NotFound, PageTitle, revealAndFocus, Status, Timeline } from "../components/ui";
 import { checkLabel, checkResult, eventSentence } from "../labels";
 import { OPEN_INVESTIGATION, statusLabel } from "../status";
 import type { AuditEvent, Incident, IncidentDetail, QualityCheckResult } from "../types";
 
 const INCIDENT_STATUSES = ["open", "investigating", "awaiting_review", "resolved", "dismissed"];
 const FILTER_LABEL = (s: string) => (s === "unresolved" ? "Unresolved (open, investigating or awaiting review)" : statusLabel("incident", s));
+const PAGE = 25; // ponytail: client-side paging over the 200 fetched rows; server paging when lists grow
 const SEVERITY_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
 export function IncidentList({ initialStatus = "", initialQuery = "", initialSort = "newest" }: { initialStatus?: string; initialQuery?: string; initialSort?: string }) {
   const [status, setStatus] = useState(initialStatus);
   const [query, setQuery] = useState(initialQuery);
   const [sort, setSort] = useState(initialSort);
+  const [limit, setLimit] = useState(PAGE);
+  useEffect(() => setLimit(PAGE), [status, query, sort]);
   const [load, reload] = useApi<Incident[]>(`/incidents?limit=200${status ? `&status=${status}` : ""}`);
-  const changed = useRef(false);
+  // pending announcement; for a status change it waits for data newer than what was on screen (no stale counts)
+  const changed = useRef<false | { after?: Date }>(false);
 
   const choose = (s: string) => {
     setStatus(s);
-    changed.current = true;
+    changed.current = { after: load.state === "ok" ? load.updatedAt : undefined };
   };
 
   // keep filter, search and sort in the URL (reload/back/share) without adding a history entry per change
@@ -43,7 +47,8 @@ export function IncidentList({ initialStatus = "", initialQuery = "", initialSor
   }, [load, query, sort]);
 
   useEffect(() => {
-    if (load.state === "ok" && changed.current) {
+    const pending = changed.current;
+    if (load.state === "ok" && pending && !load.refreshing && (!pending.after || load.updatedAt !== pending.after)) {
       changed.current = false;
       announce(`${rows.length} incident${rows.length === 1 ? "" : "s"} shown${status ? ` with status ${FILTER_LABEL(status).toLowerCase()}` : ""}.`);
     }
@@ -71,32 +76,49 @@ export function IncidentList({ initialStatus = "", initialQuery = "", initialSor
             placeholder="Title, id or dataset"
             leftSection={<IconSearch size={16} />}
             value={query}
-            onChange={(e) => { setQuery(e.currentTarget.value); changed.current = true; }}
+            onChange={(e) => { setQuery(e.currentTarget.value); changed.current = {}; }}
             w={260}
             rightSection={query ? (
-              <button type="button" className="icon-btn" aria-label="Clear search" onClick={() => { setQuery(""); changed.current = true; }}><IconX size={16} /></button>
+              <button type="button" className="icon-btn" aria-label="Clear search" onClick={() => { setQuery(""); changed.current = {}; }}><IconX size={16} /></button>
             ) : null}
           />
           <Select label="Sort" value={sort} onChange={(v) => setSort(v ?? "newest")} allowDeselect={false} w={180}
             data={[{ value: "newest", label: "Newest first" }, { value: "oldest", label: "Oldest first" }, { value: "severity", label: "Severity" }]} />
-          {load.state === "ok" && <Text size="sm" c="dimmed" ml="auto">{rows.length} of {load.data.length} shown</Text>}
+          {load.state === "ok" && <Text size="sm" c="dimmed" ml="auto">{rows.length} of {load.data.length} incidents</Text>}
         </Group>
       </Paper>
       <LoadView load={load} onRetry={reload}>
         {() => (
+          <>
           <IncidentTable
-            rows={rows}
+            rows={rows.slice(0, limit)}
             empty={
               status || query ? (
                 <EmptyState
-                  title={query ? `No incidents match “${query}”` : `No incidents with status “${FILTER_LABEL(status)}”`}
-                  hint={<button type="button" className="btn-link" onClick={() => { choose(""); setQuery(""); }}>Show all incidents</button>}
+                  title={query && status ? `No ${FILTER_LABEL(status).toLowerCase()} incidents match “${query}”` : query ? `No incidents match “${query}”` : `No incidents with status “${FILTER_LABEL(status)}”`}
+                  hint={<Group gap="md" justify="center">{query && <button type="button" className="btn-link" onClick={() => { setQuery(""); changed.current = {}; }}>Clear search</button>}{status && <button type="button" className="btn-link" onClick={() => choose("")}>Show all statuses</button>}</Group>}
                 />
               ) : (
                 <EmptyState title="No incidents yet" hint="Incidents appear here when a quality check fails after a pipeline run." />
               )
             }
           />
+          {rows.length > limit && (
+            <Group justify="center" mt="md">
+              <Button
+                variant="default"
+                onClick={() => {
+                  const next = limit;
+                  setLimit(limit + PAGE);
+                  // keep the keyboard position: move to the first newly shown incident
+                  requestAnimationFrame(() => document.querySelectorAll<HTMLElement>("table .row-title")[next]?.focus());
+                }}
+              >
+                Show {Math.min(PAGE, rows.length - limit)} more ({rows.length - limit} not shown)
+              </Button>
+            </Group>
+          )}
+          </>
         )}
       </LoadView>
     </>
@@ -174,12 +196,21 @@ export function IncidentBody({ d, onStart, onChanged }: { d: IncidentDetail; onS
       confirm={active ? { title: "Start another investigation?", prompt: <>Investigation <code>{active.id}</code> is still {statusLabel("investigation", active.status).toLowerCase()}. Start another one anyway?</>, confirmLabel: "Yes, start another" } : undefined}
     />
   );
+  const approved = !closed && d.investigations.find((i) => i.review_decision === "approve");
+  const manual = d.incident.title.startsWith("Manual report:");
   return (
     <>
-      <Card title="Triggering checks">
+      {approved && (
+        <Alert color="teal" variant="light" radius="lg" mb="lg" role="note" icon={<IconCircleCheck size={20} />} title="Diagnosis approved — incident not closed yet">
+          <Text size="sm">
+            The diagnosis of <a href={`#/investigations/${approved.id}`}>{approved.id}</a> was approved. {canAct("approver") ? <>Mark the incident resolved (or dismiss it) under <a href="#incident-closure" onClick={(e) => { e.preventDefault(); revealAndFocus(document.getElementById("incident-closure")); }}>Close the incident</a> below.</> : "An approver can now mark the incident resolved."}
+          </Text>
+        </Alert>
+      )}
+      <Card title={manual ? "Failing checks on the related run" : "Triggering checks"}>
         <CheckTable rows={d.checks} />
       </Card>
-      <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
+      <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg" style={{ alignItems: "start" }}>
         <Card title="Investigations" actions={startAction}>
           {active && (
             <Paper withBorder p="sm" mb="sm" className="soft-info" role="note">
@@ -196,6 +227,7 @@ export function IncidentBody({ d, onStart, onChanged }: { d: IncidentDetail; onS
                     <Group gap={6}>
                       <Status entity="investigation" value={i.status} />
                       {i.outcome && <Status entity="outcome" value={i.outcome} />}
+                      {i.review_decision && <Status entity="decision" value={i.review_decision} />}
                     </Group>
                   </Group>
                   <Text size="xs" c="dimmed" mt={4}>Started {fmtTime(i.created_at)}{i.mode === "fake" ? " · fake LLM" : ""}</Text>
@@ -203,11 +235,11 @@ export function IncidentBody({ d, onStart, onChanged }: { d: IncidentDetail; onS
               ))}
             </Stack>
           ) : (
-            <EmptyState title="Not investigated yet" hint={closed ? undefined : "Start an investigation to collect evidence and get a diagnosis."} />
+            <EmptyState title="Not investigated yet" hint={closed ? undefined : canAct("investigator") ? "Start an investigation to collect evidence and get a diagnosis." : "An investigator can start an investigation to collect evidence and get a diagnosis."} />
           )}
         </Card>
         <Card title="Timeline">
-          <Timeline items={d.timeline.map(eventItem)} />
+          <Timeline items={d.timeline.map((e) => eventItem(e, d.incident.id))} />
         </Card>
       </SimpleGrid>
       {onChanged && <IncidentDecision d={d} onChanged={onChanged} />}
@@ -227,7 +259,7 @@ function IncidentDecision({ d, onChanged }: { d: IncidentDetail; onChanged: () =
     onChanged();
   };
   return (
-    <Card title={closed ? "Incident closed" : "Close the incident"}>
+    <Card id="incident-closure" title={closed ? "Incident closed" : "Close the incident"}>
       <Text size="sm" c="dimmed" mb="sm">
         {closed
           ? `Marked ${statusLabel("incident", d.incident.status).toLowerCase()}${d.incident.closed_at ? ` at ${fmtTime(d.incident.closed_at)}` : ""}. Reopen it if the problem is not actually fixed.`
@@ -260,7 +292,7 @@ function IncidentDecision({ d, onChanged }: { d: IncidentDetail; onChanged: () =
   );
 }
 
-function eventItem(e: AuditEvent) {
+function eventItem(e: AuditEvent, selfId: string) {
   const detail = e.detail ?? {};
   const decision = typeof detail.decision === "string" ? detail.decision : null;
   const note = typeof detail.note === "string" && detail.note ? detail.note : null;
@@ -271,11 +303,13 @@ function eventItem(e: AuditEvent) {
     icon: done ? <IconCircleCheck size={14} /> : <IconCircleDot size={12} />,
     title: (
       <>
-        {eventSentence(e)} {decision && <Status entity="decision" value={decision} />} <EntityLink type={e.entity_type} id={e.entity_id} />
+        {eventSentence(e)} {decision && <Status entity="decision" value={decision} />}
       </>
     ),
     detail: (
       <>
+        {/* the related entity on its own line, except a link to this very incident */}
+        {e.entity_id !== selfId && <div><EntityLink type={e.entity_type} id={e.entity_id} /></div>}
         by {e.actor.replace(/^dev:/, "")}
         {note && <> · “{note}”</>}
       </>

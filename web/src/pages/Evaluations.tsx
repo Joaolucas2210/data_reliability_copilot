@@ -150,7 +150,8 @@ function AccuracyChart({ runs }: { runs: EvalRun[] }) {
     >
       <Text size="sm" c="dimmed" mb="md">Share of scenarios where the outcome and the exact set of causes match the ground truth. Higher is better.</Text>
       {view === "chart" ? (
-        <figure className="chart" aria-label={`Bar chart: ${data.map((d) => `${d.system}: ${splits.map((sp) => `${SPLIT_LABEL[sp]} ${(d as Record<string, unknown>)[SPLIT_LABEL[sp]] ?? "not run"}%`).join(", ")}`).join("; ")}`}>
+        <figure className="chart">
+          <figcaption className="sr-only">{`Bar chart: ${data.map((d) => `${d.system}: ${splits.map((sp) => `${SPLIT_LABEL[sp]} ${(d as Record<string, unknown>)[SPLIT_LABEL[sp]] ?? "not run"}%`).join(", ")}`).join("; ")}`}</figcaption>
           <BarChart
             h={280}
             data={data}

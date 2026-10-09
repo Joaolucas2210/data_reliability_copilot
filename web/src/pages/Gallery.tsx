@@ -1,4 +1,5 @@
-import { AccessDenied, ActionButton, Card, EmbeddedContext, EmptyState, EpistemicTag, ErrorState, EvidenceRef, Loading, ModeBanner, NotFound, Status, StatusPill, Tabs } from "../components/ui";
+import { Alert, Textarea } from "@mantine/core";
+import { AccessDenied, ActionButton, Card, EmbeddedContext, EmptyState, EpistemicTag, ErrorState, EvidenceRef, Loading, ModeBanner, NotFound, PageTitle, Status, StatusPill, Tabs } from "../components/ui";
 import type { Entity } from "../status";
 import { fxEval, fxHealth, fxIncident, fxInvestigation, fxValidation } from "../fixtures";
 import { EvalView } from "./Evaluations";
@@ -36,18 +37,16 @@ const fails = async () => { throw new Error("fixture"); };
 export function Gallery() {
   return (
     <>
-      <h1 tabIndex={-1}>Design system</h1>
-      <div className="banner tone-info" role="note">
-        <p>
-          <strong>Fixtures:</strong> every example on this page uses hand-written sample data from <code>src/fixtures.ts</code>, not pipeline output. Use the theme switch in the top bar to check light and dark themes.
-        </p>
-      </div>
+      <PageTitle>Design system</PageTitle>
+      <Alert color="blue" variant="light" radius="lg" mb="lg" role="note" title="Fixtures">
+        Every example on this page uses hand-written sample data from <code>src/fixtures.ts</code>, not pipeline output. Use the theme switch in the top bar to check light and dark themes.
+      </Alert>
 
       <Card title="Tokens">
-        <ul className="grid" style={{ listStyle: "none", padding: 0, gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
+        <ul className="grid" style={{ listStyle: "none", padding: 0, gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "var(--sp-3)" }}>
           {SWATCHES.map((s) => (
-            <li key={s} className="row">
-              <span aria-hidden="true" style={{ width: 28, height: 28, borderRadius: 4, background: `var(--${s})`, border: "1px solid var(--border-strong)" }} />
+            <li key={s} className="row" style={{ flexWrap: "nowrap" }}>
+              <span aria-hidden="true" style={{ flex: "none", width: 28, height: 28, borderRadius: 4, background: `var(--${s})`, border: "1px solid var(--border-strong)" }} />
               <code>--{s}</code>
             </li>
           ))}
@@ -78,9 +77,15 @@ export function Gallery() {
       </Card>
 
       <Card title="Form field with validation">
-        <label htmlFor="g-note">Review note <span className="muted">(required to reject)</span></label>
-        <textarea id="g-note" rows={2} aria-invalid="true" aria-describedby="g-note-err" defaultValue="" />
-        <p id="g-note-err" className="field-error"><span aria-hidden="true">✕ </span>Write a note explaining why you reject the diagnosis.</p>
+        {/* the same component and props as the production review note */}
+        <Textarea
+          label="Review note"
+          description="Required to reject; recommended to approve. Saved with your decision."
+          autosize
+          minRows={3}
+          defaultValue=""
+          error="Write a note explaining why you reject the diagnosis."
+        />
       </Card>
 
       <Card title="Epistemic tags (label + icon + border shape)">

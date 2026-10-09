@@ -116,8 +116,11 @@ def incident(incident_id: str, _: Role = Depends(role)) -> dict:
         incident_id,
     )
     invs = _all(
-        "select id,status,outcome,mode,llm_provider,llm_model,created_at,finished_at from investigation"
-        " where incident_id=%s order by created_at desc",
+        "select i.id,i.status,i.outcome,i.mode,i.llm_provider,i.llm_model,i.created_at,i.finished_at,"
+        " (select a.detail->>'decision' from audit_event a where a.entity_type='investigation'"
+        "  and a.entity_id=i.id and a.action='investigation.status' and a.to_status='completed'"
+        "  order by a.at desc limit 1) as review_decision"
+        " from investigation i where i.incident_id=%s order by i.created_at desc",
         incident_id,
     )
     ids = [incident_id, inc["last_pipeline_run_id"], *[i["id"] for i in invs]]
@@ -138,13 +141,16 @@ class StartBody(BaseModel):
 def start_investigation(
     incident_id: str,
     body: StartBody | None = None,
-    _: Role = Depends(need("investigator")),
+    r: Role = Depends(need("investigator")),
     idempotency_key: Annotated[str | None, Header()] = None,
 ) -> dict:
     _one("select id from incident where id=%s", incident_id)
     try:
         inv_id = agent.create(
-            incident_id, provider=body.provider if body else None, idempotency_key=idempotency_key
+            incident_id,
+            provider=body.provider if body else None,
+            idempotency_key=idempotency_key,
+            actor=f"dev:{r}",
         )
     except agent.ClosedIncidentError as e:
         raise HTTPException(409, str(e)) from e
@@ -291,7 +297,7 @@ def start_validation(proposal_id: str, _: Role = Depends(need("investigator"))) 
 @app.get("/api/validation-runs/{vr_id}")
 def validation_run(vr_id: str, _: Role = Depends(role)) -> dict:
     return _one(
-        "select v.*, p.investigation_id, p.playbook, i.incident_id from validation_run v"
+        "select v.*, p.investigation_id, p.playbook, i.incident_id, i.status as investigation_status from validation_run v"
         " join remediation_proposal p on p.id=v.proposal_id join investigation i on i.id=p.investigation_id"
         " where v.id=%s",
         vr_id,

@@ -194,7 +194,8 @@ export function ActionButton({
             title: confirm.title ?? label,
             children: <Text size="sm">{confirm.prompt}</Text>,
             labels: { confirm: confirm.confirmLabel, cancel: "Go back" },
-            confirmProps: { color: variant === "danger" ? "red" : undefined, "data-autofocus": true },
+            confirmProps: { color: variant === "danger" ? "red" : undefined },
+            cancelProps: { "data-autofocus": true }, // irreversible actions: Enter on open must not commit
             onConfirm: () => void run(),
           });
         }}
@@ -202,7 +203,7 @@ export function ActionButton({
         {busy ? busyLabel : label}
       </Button>
       {error && (
-        <Text role="alert" size="sm" c="red.8" className="action-error">
+        <Text role="alert" size="sm" className="action-error">
           <IconAlertTriangle size={14} aria-hidden="true" style={{ verticalAlign: "-2px" }} /> {error}
         </Text>
       )}
@@ -255,7 +256,7 @@ export function Timeline({ items }: { items: { key: string; at: string; title: R
 }
 
 /** Citation chip. `exists=false` marks a reference the citation validator could not resolve. */
-export function EvidenceRef({ id, exists = true }: { id: string; exists?: boolean }) {
+export function EvidenceRef({ id, exists = true, kind }: { id: string; exists?: boolean; kind?: string }) {
   if (!exists)
     return (
       <span className="cite cite-missing">
@@ -266,13 +267,14 @@ export function EvidenceRef({ id, exists = true }: { id: string; exists?: boolea
     <button
       type="button"
       className="cite"
-      aria-label={`Show evidence ${id}`}
+      aria-label={`Show evidence ${id}${kind ? ` (${kind})` : ""}`}
       onClick={(e) => {
         const origin = e.currentTarget;
         if (!origin.id) origin.id = `cite-${id}-${Math.random().toString(36).slice(2, 8)}`;
         window.dispatchEvent(new CustomEvent("drc:cite", { detail: { target: id, origin: origin.id } }));
       }}
     >
+      {kind && <span className="cite-kind">{kind}</span>}
       {id}
     </button>
   );

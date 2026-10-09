@@ -3,6 +3,7 @@ import { IconAlertTriangle, IconArrowLeft, IconCircleCheck, IconCircleDashed, Ic
 import { useEffect, useRef, useState } from "react";
 import { announceStatus, useApi } from "../api";
 import { Breadcrumbs, Card, DataTable, EpistemicTag, fmtClock, fmtTime, fmtValue, LoadView, NotFound, PageTitle, Status, StatusPill } from "../components/ui";
+import { checkLabel } from "../labels";
 import { statusLabel } from "../status";
 import type { ValidationRun } from "../types";
 
@@ -59,6 +60,7 @@ export function ValidationView({ v, updatedAt, showTitle = true }: { v: Validati
   const invariants = v.invariants ?? [];
   const keys = [...new Set([...Object.keys(v.metrics_before ?? {}), ...Object.keys(v.metrics_after ?? {})])];
   const elapsed = useElapsed(v.started_at, active ? null : v.finished_at);
+  const decided = v.investigation_status === "completed";
   const failedStep = steps.find((s) => s.status === "fail" || s.status === "error");
   return (
     <>
@@ -67,7 +69,7 @@ export function ValidationView({ v, updatedAt, showTitle = true }: { v: Validati
         <Status entity="validation" value={v.status} />
         {passed && <EpistemicTag kind="verified" />}
         <Text size="sm" c="dimmed">
-          {v.playbook && <>playbook <code>{v.playbook}</code> · </>}started {fmtTime(v.started_at)} · {active ? "running for" : "took"} {elapsed}
+          {v.playbook && <>playbook <code>{v.playbook}</code> · </>}{v.status === "queued" ? <>requested {fmtTime(v.started_at)} · queued for {elapsed}</> : <>started {fmtTime(v.started_at)} · {active ? "running for" : "took"} {elapsed}</>}
           {active && updatedAt && <> · updates automatically · last checked {fmtClock(updatedAt)}</>}
         </Text>
       </Group>
@@ -88,12 +90,14 @@ export function ValidationView({ v, updatedAt, showTitle = true }: { v: Validati
         >
           <Text size="sm" mb="sm">
             {passed
-              ? "All stages and invariants passed on the isolated copy. An approver can now review the diagnosis with this result in view."
+              ? decided
+                ? "All stages and invariants passed on the isolated copy. The diagnosis has already been reviewed."
+                : "All stages and invariants passed on the isolated copy. An approver can now review the diagnosis with this result in view."
               : v.error ?? "See the failing stage below. The recovery should not be approved as is."}
           </Text>
           {v.investigation_id && (
             <Button component="a" href={`#/investigations/${v.investigation_id}`} size="xs" variant={passed ? "filled" : "default"} leftSection={<IconArrowLeft size={14} />}>
-              Back to the investigation to review
+              {decided ? "Back to the investigation" : "Back to the investigation to review"}
             </Button>
           )}
         </Alert>
@@ -148,7 +152,7 @@ export function ValidationView({ v, updatedAt, showTitle = true }: { v: Validati
             columns={[
               { header: "Check", render: (c) => humanizeName(c.name) },
               { header: "Result", render: (c) => <StatusPill status={c.passed ? "pass" : "fail"} label={c.passed ? "isolated" : "NOT isolated"} /> },
-              { header: "Detail", render: (c) => (typeof c.detail === "string" ? <Text size="sm" className="detail">{c.detail}</Text> : <StepDetail detail={c.detail} />) },
+              { header: "Detail", render: (c) => (typeof c.detail === "string" ? <IsolationDetail text={c.detail} passed={c.passed} /> : <StepDetail detail={c.detail} />) },
             ]}
           />
         </Card>
@@ -158,7 +162,7 @@ export function ValidationView({ v, updatedAt, showTitle = true }: { v: Validati
             rows={invariants}
             rowKey={(i) => i.name}
             columns={[
-              { header: "Invariant", render: (i) => humanizeName(i.name) },
+              { header: "Invariant", render: (i) => <><span className="cell-title">{checkLabel(i.name)}</span><code className="cell-code">{i.name}</code></> },
               { header: "Before", render: (i) => fmtInvariant(i.before) },
               { header: "After", render: (i) => fmtInvariant(i.after) },
               { header: "After holds", render: (i) => <StatusPill status={i.passed ? "pass" : "fail"} label={i.passed ? "holds" : "violated"} /> },
@@ -172,9 +176,9 @@ export function ValidationView({ v, updatedAt, showTitle = true }: { v: Validati
           rows={keys}
           rowKey={(k) => k}
           columns={[
-            { header: "Metric", render: (k) => humanizeName(k) },
-            { header: "Before", render: (k) => fmtValue(v.metrics_before?.[k]), numeric: true },
-            { header: "After", render: (k) => fmtValue(v.metrics_after?.[k]), numeric: true },
+            { header: "Metric", render: (k) => <><span className="cell-title">{METRIC_LABEL[k] ?? humanizeName(k)}</span><code className="cell-code">{k}</code></> },
+            { header: "Before", render: (k) => fmtNum(v.metrics_before?.[k]), numeric: true },
+            { header: "After", render: (k) => fmtNum(v.metrics_after?.[k]), numeric: true },
             { header: "Change", render: (k) => delta(v.metrics_before?.[k], v.metrics_after?.[k]), numeric: true },
           ]}
         />
@@ -191,13 +195,13 @@ function delta(a: unknown, b: unknown) {
   const d = y - x;
   if (d === 0) return "no change";
   // neutral styling: whether a change is good depends on the metric and is judged by the invariants above
-  return <>{d > 0 ? "▲ +" : "▼ "}{Math.round(d * 100) / 100}</>;
+  return <>{d > 0 ? "▲ +" : "▼ "}{fmtNum(Math.round(d * 100) / 100)}</>;
 }
 
 function fmtInvariant(r: unknown) {
   if (r == null || typeof r !== "object") return fmtValue(r);
   const { passed, violations, diff } = r as { passed?: boolean; violations?: number | null; diff?: string | null };
-  return `${passed ? "holds" : "violated"} · violations ${violations ?? "?"} · diff ${diff ?? "?"}`;
+  return `${passed ? "holds" : "violated"} · ${violations ?? "?"} violation${violations === 1 ? "" : "s"} · difference ${diff != null && !Number.isNaN(Number(diff)) ? fmtNum(Number(diff)) : diff ?? "?"}`;
 }
 
 /** Structured stage details as readable key/value pairs (collapsed), with the raw JSON one click away. */
@@ -258,4 +262,30 @@ function useElapsed(from: string, to: string | null) {
   }, [to]);
   const s = Math.max(0, Math.round(((to ? Date.parse(to) : now) - Date.parse(from)) / 1000));
   return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`;
+}
+
+/** Expected refusals read as a plain sentence; the raw driver message stays one click away. */
+function IsolationDetail({ text, passed }: { text: string; passed: boolean }) {
+  const refused = /permission denied|does not have CONNECT|password authentication failed|connection.*failed/i.test(text);
+  if (!refused) return <Text size="sm" className="detail">{text}</Text>;
+  return (
+    <details className="raw-json">
+      <summary>{passed ? "Connection refused — as expected" : "Connection refused"}</summary>
+      <Text size="sm" className="detail">{text}</Text>
+    </details>
+  );
+}
+
+const METRIC_LABEL: Record<string, string> = {
+  fct_rows: "Rows in fct_payments",
+  fct_distinct_payment_ids: "Distinct payment ids in fct_payments",
+  report_days: "Days in the report",
+  report_amount: "Report total amount",
+  report_payments: "Payments in the report",
+};
+
+function fmtNum(v: unknown) {
+  if (v == null || v === "") return "—";
+  const n = Number(v);
+  return Number.isNaN(n) ? fmtValue(v) : n.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }

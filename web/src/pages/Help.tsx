@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { EpistemicTag, PageTitle, Status } from "../components/ui";
 
 export const TERMS: [string, string, ReactNode][] = [
@@ -18,7 +18,19 @@ export const TERMS: [string, string, ReactNode][] = [
   ["fake", "Fake LLM", "A deterministic test double used when no model is configured. Its results show that the workflow works, not how good a model is."],
 ];
 
-export function Help() {
+function showTerm(id: string) {
+  const el = document.getElementById(`term-${id}`);
+  el?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  el?.focus({ preventScroll: true });
+}
+
+export function Help({ term }: { term?: string }) {
+  // deep link from search: #/help?term=<id> (after the page-level h1 focus)
+  useEffect(() => {
+    if (!term) return;
+    const t = setTimeout(() => showTerm(term), 50);
+    return () => clearTimeout(t);
+  }, [term]);
   return (
     <>
       <PageTitle>Help & glossary</PageTitle>
@@ -28,7 +40,7 @@ export function Help() {
         record a decision.
       </p>
       <nav aria-label="Glossary terms" className="toc">
-        <ul>{TERMS.map(([id, term]) => <li key={id}><a href={`#/help`} onClick={(e) => { e.preventDefault(); document.getElementById(`term-${id}`)?.focus(); document.getElementById(`term-${id}`)?.scrollIntoView({ block: "start" }); }}>{term}</a></li>)}</ul>
+        <ul>{TERMS.map(([id, term]) => <li key={id}><a href={`#/help`} onClick={(e) => { e.preventDefault(); showTerm(id); }}>{term}</a></li>)}</ul>
       </nav>
       <dl className="glossary">
         {TERMS.map(([id, term, def]) => (

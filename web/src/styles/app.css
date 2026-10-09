@@ -19,7 +19,6 @@ h1, h2, .row-title, .cell-title, .kv dd, .mono, code { overflow-wrap: break-word
 /* focus: always visible for keyboard; headings that receive programmatic focus get a quiet cue (C16) */
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .page-title:focus, .focus-heading:focus, [tabindex="-1"]:focus { outline: none; }
-.page-title:focus-visible, .focus-heading:focus-visible { outline: none; box-shadow: inset 4px 0 0 var(--focus); padding-left: var(--sp-2); }
 .page-title { margin-bottom: var(--sp-4); }
 
 /* ---------- shell ---------- */
@@ -88,7 +87,6 @@ h1, h2, .row-title, .cell-title, .kv dd, .mono, code { overflow-wrap: break-word
 
 /* ---------- health ---------- */
 .stat-tile { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
-.stat-tile[class*="tone-"] { border-color: currentColor; }
 .meter { display: flex; gap: 2px; height: 8px; border-radius: 4px; overflow: hidden; }
 .meter-seg { display: block; min-width: 6px; }
 .seg-pass { background: var(--pass-fg); }
@@ -142,3 +140,28 @@ h1 code { font-size: 0.75em; font-weight: 600; }
 /* alert titles in text colour (tone is carried by icon, border and background); links inside alerts stay readable */
 .mantine-Alert-label { color: var(--text); }
 .mantine-Alert-root a:not(.mantine-Button-root) { color: inherit; font-weight: 600; text-decoration: underline; }
+
+/* desktop tables: status pills stay on one line; glossary term focused from search gets a visible cue */
+@media (min-width: 901px) { td .pill { white-space: nowrap; } }
+.glossary dt:focus { outline: none; box-shadow: inset 4px 0 0 var(--focus); padding-left: var(--sp-2); }
+/* action = button + its reason/error text; the button keeps its own width */
+.action { display: inline-flex; flex-direction: column; align-items: flex-start; gap: var(--sp-1); max-width: 100%; }
+.action-note, .action-error { font-size: var(--fs-sm); max-width: 40ch; }
+.action-error { color: var(--fail-fg); }
+
+/* alerts never clip at 320 px: body may shrink, buttons inside wrap */
+.mantine-Alert-body { min-width: 0; }
+.mantine-Alert-root .mantine-Button-root { height: auto; min-height: 30px; padding-block: 4px; max-width: 100%; }
+.mantine-Alert-root .mantine-Button-label { white-space: normal; text-align: left; }
+/* health tiles: tint only the tiles that need attention */
+.stat-tile.tone-fail { background: var(--fail-bg); color: var(--fail-fg); border-color: currentColor; }
+.stat-tile.tone-warn { background: var(--warn-bg); color: var(--warn-fg); border-color: currentColor; }
+/* tabs wrap on narrow screens instead of hiding labels behind a sideways scroll */
+@media (max-width: 600px) { .tab-list { flex-wrap: wrap; overflow-x: visible; } }
+
+/* one focus ring everywhere (Mantine controls included), and contrast-checked error/placeholder colours */
+:root[data-mantine-color-scheme] { --mantine-color-error: var(--fail-fg); --mantine-color-placeholder: var(--text-muted); }
+.mantine-focus-auto:focus-visible, .mantine-focus-always:focus, .mantine-Input-input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.mantine-Input-input::placeholder { color: var(--text-muted); opacity: 1; }
+.cite-kind { font-family: var(--font-sans); font-weight: 600; color: var(--text-muted); padding-right: 4px; border-right: 1px solid var(--border); }
+.status-dict dd.row { gap: var(--sp-2); }
