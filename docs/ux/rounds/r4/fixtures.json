@@ -1,0 +1,26 @@
+{
+  "E1": {
+    "dup_incident": "inc_01a121fe5856d1e7fe7f",
+    "dup_investigation": "inv_01a121ff8a5a82ea3815",
+    "dup_proposal": "prop_01a121ff8a5a82ea3815",
+    "open_manual_incident": "inc_01a121ff8dcb8c60b56e"
+  },
+  "E2": {
+    "dup_incident": "inc_01a121fffb3f4322cfb5",
+    "dup_investigation": "inv_01a121fffb5ce4d26c85",
+    "dup_proposal": "prop_01a121fffb5ce4d26c85",
+    "open_manual_incident": "inc_01a121ffff021fde4a94"
+  },
+  "E3": {
+    "dup_incident": "inc_01a12200729ab3b74213",
+    "dup_investigation": "inv_01a1220072af02fdc957",
+    "dup_proposal": "prop_01a1220072af02fdc957",
+    "open_manual_incident": "inc_01a122007624b11c34e0"
+  },
+  "E4": {
+    "dup_incident": "inc_01a12200e8c0c99a5a8b",
+    "dup_investigation": "inv_01a12200e8dc4c0bb400",
+    "dup_proposal": "prop_01a12200e8dc4c0bb400",
+    "open_manual_incident": "inc_01a12200ed6d314cfa78"
+  }
+}
