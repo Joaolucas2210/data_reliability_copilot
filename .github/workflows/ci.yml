@@ -23,7 +23,8 @@ jobs:
       - run: uv run mypy src
       - run: uv run pytest tests/test_unit.py -q
       - name: bootstrap local roles (CI-only throwaway passwords, same as docker-compose)
-        run: docker exec ${{ job.services.postgres.id }} psql -U drc_admin -d postgres -f - < infra/local/init.sql
+        # -i is required: without it docker exec drops stdin and psql applies nothing (exit 0, silent failure)
+        run: docker exec -i ${{ job.services.postgres.id }} psql -v ON_ERROR_STOP=1 -U drc_admin -d postgres -f - < infra/local/init.sql
       - name: vertical slice + integration tests (fake LLM, no secrets)
         env: {DRC_LLM_PROVIDER: fake, MLFLOW_DISABLE_AGENT_HINT: "1"}
         run: |
@@ -53,8 +54,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: {fetch-depth: 0}
-      - uses: gitleaks/gitleaks-action@v2
-        env: {GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"}
+      # Pinned CLI image over the whole history (same command as locally). The gitleaks action failed on the
+      # first push of a branch (event range starts at 0000000) and needs a licence for organisation repos.
+      - name: gitleaks (full history)
+        run: docker run --rm -v "$PWD":/repo zricethezav/gitleaks:v8.30.1 git /repo --redact --no-banner
 
   dependency-review:
     if: github.event_name == 'pull_request'

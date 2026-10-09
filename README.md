@@ -50,4 +50,4 @@ OpenTelemetry 1.45 · Docker Compose · Terraform 1.16 (azurerm 5.9 / aws 6.68 /
 
 `make check` = ruff format + lint, mypy, unit tests, UI typecheck/build/contrast, Terraform fmt/validate.
 CI (`.github/workflows/ci.yml`, `terraform.yml`) adds integration tests on a Postgres service, the end-to-end demo,
-gitleaks, pip-audit, npm audit, Playwright + axe, dependency review. CI has not run yet (no remote repository).
+gitleaks, pip-audit, npm audit, Playwright + axe, dependency review. CI runs on GitHub Actions for every push to `main` and every PR.
