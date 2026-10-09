@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { EpistemicTag, PageTitle, Status } from "../components/ui";
 
 export const TERMS: [string, string, ReactNode][] = [
-  ["incident", "Incident", "Opened automatically when a deterministic quality check fails after a pipeline run. Rules decide that something is wrong; the agent never does."],
+  ["incident", "Incident", "Opened automatically when a deterministic quality check fails after a pipeline run, or reported by a person who suspects a report is wrong (a manual report). Rules or people decide that something is wrong; the agent never does."],
   ["check", "Quality check", "A deterministic rule: schema contract, data test, freshness, business invariant, anomaly or model run. Each has its own type because they answer different questions."],
   ["invariant", "Business invariant", "A rule the report must satisfy against an independent source, e.g. daily collections must equal the core-banking control totals."],
   ["freshness", "Freshness", "Whether source data arrived recently enough. Late data can make a report wrong even if every other check passes."],
@@ -34,7 +34,7 @@ export function Help({ term }: { term?: string }) {
   return (
     <>
       <PageTitle>Help & glossary</PageTitle>
-      <p>
+      <p className="help-prose">
         Data Reliability Copilot explains incidents where a pipeline ran but its report may be wrong. The usual path is: open an{" "}
         <a href="#/incidents">incident</a>, read its investigation, check the cited evidence, validate a proposed recovery in the sandbox, then
         record a decision.

@@ -84,7 +84,7 @@ export function IncidentList({ initialStatus = "", initialQuery = "", initialSor
           />
           <Select label="Sort" value={sort} onChange={(v) => setSort(v ?? "newest")} allowDeselect={false} w={180}
             data={[{ value: "newest", label: "Newest first" }, { value: "oldest", label: "Oldest first" }, { value: "severity", label: "Severity" }]} />
-          {load.state === "ok" && <Text size="sm" c="dimmed" ml="auto">{rows.length} of {load.data.length} incidents</Text>}
+          {load.state === "ok" && <Text size="sm" c="dimmed" ml="auto">{rows.length > limit ? `Showing ${limit} of ${rows.length} matching` : `${rows.length} of ${load.data.length} incidents`}</Text>}
         </Group>
       </Paper>
       <LoadView load={load} onRetry={reload}>
@@ -96,7 +96,7 @@ export function IncidentList({ initialStatus = "", initialQuery = "", initialSor
               status || query ? (
                 <EmptyState
                   title={query && status ? `No ${FILTER_LABEL(status).toLowerCase()} incidents match “${query}”` : query ? `No incidents match “${query}”` : `No incidents with status “${FILTER_LABEL(status)}”`}
-                  hint={<Group gap="md" justify="center">{query && <button type="button" className="btn-link" onClick={() => { setQuery(""); changed.current = {}; }}>Clear search</button>}{status && <button type="button" className="btn-link" onClick={() => choose("")}>Show all statuses</button>}</Group>}
+                  hint={<Group gap="md" justify="center">{query && <Button size="xs" variant="default" onClick={() => { setQuery(""); changed.current = {}; }}>Clear search</Button>}{status && <Button size="xs" variant="default" onClick={() => choose("")}>Show all statuses</Button>}</Group>}
                 />
               ) : (
                 <EmptyState title="No incidents yet" hint="Incidents appear here when a quality check fails after a pipeline run." />
@@ -133,7 +133,7 @@ export function IncidentTable({ rows, empty }: { rows: Incident[]; empty?: React
       rowKey={(r) => r.id}
       empty={empty ?? <EmptyState title="No incidents yet" />}
       columns={[
-        { header: "Incident", render: (r) => <a href={`#/incidents/${r.id}`} className="row-title">{r.title}</a> },
+        { header: "Incident", render: (r) => <><a href={`#/incidents/${r.id}`} className="row-title">{r.title}</a><code className="cell-code">{r.id}</code></> },
         { header: "Severity", render: (r) => <Status entity="severity" value={r.severity} /> },
         { header: "Status", render: (r) => <Status entity="incident" value={r.status} /> },
         { header: "Dataset", render: (r) => <code>{r.dataset_id ?? "—"}</code> },
@@ -196,14 +196,28 @@ export function IncidentBody({ d, onStart, onChanged }: { d: IncidentDetail; onS
       confirm={active ? { title: "Start another investigation?", prompt: <>Investigation <code>{active.id}</code> is still {statusLabel("investigation", active.status).toLowerCase()}. Start another one anyway?</>, confirmLabel: "Yes, start another" } : undefined}
     />
   );
-  const approved = !closed && d.investigations.find((i) => i.review_decision === "approve");
+  // latest decided investigation, while the incident is still open and nothing newer is running
+  const latest = d.investigations.find((i) => i.status !== "cancelled" && i.status !== "failed"); // newest that produced something
+  const decided = !closed && !active && latest?.review_decision ? latest : undefined;
   const manual = d.incident.title.startsWith("Manual report:");
   return (
     <>
-      {approved && (
-        <Alert color="teal" variant="light" radius="lg" mb="lg" role="note" icon={<IconCircleCheck size={20} />} title="Diagnosis approved — incident not closed yet">
+      {decided && (
+        <Alert
+          color={decided.review_decision === "approve" ? "teal" : "gray"}
+          variant="light"
+          radius="lg"
+          mb="lg"
+          role="note"
+          icon={decided.review_decision === "approve" ? <IconCircleCheck size={20} /> : <IconX size={20} />}
+          title={decided.review_decision === "approve" ? "Diagnosis approved — incident not closed yet" : "Diagnosis rejected — the cause is still open"}
+        >
           <Text size="sm">
-            The diagnosis of <a href={`#/investigations/${approved.id}`}>{approved.id}</a> was approved. {canAct("approver") ? <>Mark the incident resolved (or dismiss it) under <a href="#incident-closure" onClick={(e) => { e.preventDefault(); revealAndFocus(document.getElementById("incident-closure")); }}>Close the incident</a> below.</> : "An approver can now mark the incident resolved."}
+            {decided.review_decision === "approve" ? (
+              <>The diagnosis of <a href={`#/investigations/${decided.id}`}>{decided.id}</a> was approved. {canAct("approver") ? <>Mark the incident resolved (or dismiss it) under <a href="#incident-closure" onClick={(e) => { e.preventDefault(); revealAndFocus(document.querySelector<HTMLElement>("#incident-closure h2")); }}>Close the incident</a> below.</> : "An approver can now mark the incident resolved."}</>
+            ) : (
+              <>The diagnosis of <a href={`#/investigations/${decided.id}`}>{decided.id}</a> was rejected. Start another investigation{canAct("approver") ? <>, or dismiss the incident under <a href="#incident-closure" onClick={(e) => { e.preventDefault(); revealAndFocus(document.querySelector<HTMLElement>("#incident-closure h2")); }}>Close the incident</a> if it is not a real problem</> : null}.</>
+            )}
           </Text>
         </Alert>
       )}
@@ -225,9 +239,8 @@ export function IncidentBody({ d, onStart, onChanged }: { d: IncidentDetail; onS
                   <Group justify="space-between" gap="xs" wrap="wrap">
                     <a href={`#/investigations/${i.id}`} className="mono">{i.id}</a>
                     <Group gap={6}>
-                      <Status entity="investigation" value={i.status} />
+                      {i.review_decision ? <Status entity="decision" value={i.review_decision} /> : <Status entity="investigation" value={i.status} />}
                       {i.outcome && <Status entity="outcome" value={i.outcome} />}
-                      {i.review_decision && <Status entity="decision" value={i.review_decision} />}
                     </Group>
                   </Group>
                   <Text size="xs" c="dimmed" mt={4}>Started {fmtTime(i.created_at)}{i.mode === "fake" ? " · fake LLM" : ""}</Text>
@@ -252,9 +265,19 @@ function IncidentDecision({ d, onChanged }: { d: IncidentDetail; onChanged: () =
   const [note, setNote] = useState("");
   const closed = d.incident.status === "resolved" || d.incident.status === "dismissed";
   const allowed = canAct("approver");
+  useEffect(() => {
+    // the button that was used is replaced by the new state: put focus on this card's heading, not <body>
+    // (flag in sessionStorage: the card may remount while the incident reloads)
+    if (sessionStorage.getItem("drc.focusClosure") === d.incident.id + ":" + d.incident.status) {
+      sessionStorage.removeItem("drc.focusClosure");
+      // after the confirmation modal has finished closing (it returns focus to the now-removed trigger)
+      setTimeout(() => document.querySelector<HTMLElement>("#incident-closure h2")?.focus(), 350);
+    }
+  }, [d.incident.status]);
   const change = (to: "resolved" | "dismissed" | "open", msg: string) => async () => {
     await api(`/incidents/${d.incident.id}/status`, { method: "POST", body: JSON.stringify({ to, note }) });
     setNote("");
+    sessionStorage.setItem("drc.focusClosure", `${d.incident.id}:${to}`);
     announce(msg);
     onChanged();
   };
@@ -309,7 +332,7 @@ function eventItem(e: AuditEvent, selfId: string) {
     detail: (
       <>
         {/* the related entity on its own line, except a link to this very incident */}
-        {e.entity_id !== selfId && <div><EntityLink type={e.entity_type} id={e.entity_id} /></div>}
+        {e.entity_id !== selfId && <span style={{ display: "block" }}><EntityLink type={e.entity_type} id={e.entity_id} /></span>}
         by {e.actor.replace(/^dev:/, "")}
         {note && <> · “{note}”</>}
       </>

@@ -42,7 +42,7 @@ const METRICS: Record<string, [string, string, (v: number) => string]> = {
   injected_instruction_followed: ["Injected instructions followed", "Times the system obeyed an instruction planted in the evidence.", (v) => String(v)],
   mean_latency_ms: ["Mean latency", "Average time per scenario for this system.", (v) => (v < 1000 ? `${Math.round(v)} ms` : `${(v / 1000).toFixed(1)} s`)],
   llm_calls_total: ["LLM calls", "Total model calls.", (v) => String(v)],
-  cost_usd_total: ["Cost", "Total cost in USD; empty when unknown (never shown as zero).", (v) => `$${v.toFixed(4)}`],
+  cost_usd_total: ["Cost", "Total cost in USD; empty when unknown (never shown as zero).", (v) => (v === 0 ? "$0.00" : `$${v.toFixed(4)}`)],
   detected_all_rate: ["Detection rate", "Share of scenarios where every expected rule fired.", pct],
   rule_false_positives: ["Rule false positives", "Clean scenarios where a rule fired anyway.", (v) => String(v)],
 };
@@ -91,7 +91,7 @@ export function EvalView({ runs }: { runs: EvalRun[] }) {
                   header: (SYSTEM_LABEL[r.system] ?? r.system).split(" · ")[0] + " · " + r.system.split("_")[1],
                   render: (id: string) => {
                     const s = r.per_scenario.find((x) => x.scenario_id === id);
-                    return s ? <StatusPill status={s.correct ? "pass" : "fail"} label={`${s.correct ? "Correct" : "Wrong"}: ${statusLabel("outcome", s.got)}`} /> : "—";
+                    return s ? <StatusPill status={s.correct ? "pass" : "fail"} label={s.correct ? `Correct: ${statusLabel("outcome", s.got)}` : s.got === s.expected ? `Right outcome, wrong causes` : `Wrong: ${statusLabel("outcome", s.got)}`} /> : "—";
                   },
                 })),
               ]}
@@ -131,6 +131,7 @@ export function EvalView({ runs }: { runs: EvalRun[] }) {
   );
 }
 
+const SHORT_LABEL: Record<string, string> = { A_rules: "A · rules", B_summary_llm: "B · summary LLM", C_agent_tools: "C · agent" };
 const SPLIT_LABEL = { dev: "Dev split", final: "Final (held-out) split" } as const;
 
 /** Diagnosis accuracy per system, dev vs final. Two series, palette validated for light + dark (CVD-safe); labels + legend + table, never colour alone. */
@@ -142,7 +143,8 @@ function AccuracyChart({ runs }: { runs: EvalRun[] }) {
     const v = runs.find((r) => r.system === system && r.split === split)?.metrics.diagnosis_accuracy;
     return v == null ? null : Math.round(Number(v) * 1000) / 10;
   };
-  const data = systems.map((sys) => ({ system: SYSTEM_LABEL[sys] ?? sys, ...Object.fromEntries(splits.map((sp) => [SPLIT_LABEL[sp], acc(sys, sp)])) }));
+  // short axis labels so every bar keeps its name on phones; full names are in the table view
+  const data = systems.map((sys) => ({ system: SHORT_LABEL[sys] ?? sys, ...Object.fromEntries(splits.map((sp) => [SPLIT_LABEL[sp], acc(sys, sp)])) }));
   return (
     <Card
       title="Diagnosis accuracy by system"
@@ -166,6 +168,8 @@ function AccuracyChart({ runs }: { runs: EvalRun[] }) {
             gridAxis="y"
             barProps={{ radius: [4, 4, 0, 0] }}
             tickLine="none"
+            xAxisProps={{ interval: 0 }}
+            barChartProps={{ accessibilityLayer: false }} // no unnamed tab stop; values are in the labels and the Table view
           />
         </figure>
       ) : (

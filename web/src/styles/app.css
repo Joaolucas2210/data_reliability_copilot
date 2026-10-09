@@ -157,7 +157,8 @@ h1 code { font-size: 0.75em; font-weight: 600; }
 .stat-tile.tone-fail { background: var(--fail-bg); color: var(--fail-fg); border-color: currentColor; }
 .stat-tile.tone-warn { background: var(--warn-bg); color: var(--warn-fg); border-color: currentColor; }
 /* tabs wrap on narrow screens instead of hiding labels behind a sideways scroll */
-@media (max-width: 600px) { .tab-list { flex-wrap: wrap; overflow-x: visible; } }
+/* narrow screens: tabs stay one row; tighter padding, and the row scrolls if it still doesn't fit */
+@media (max-width: 600px) { .tab-list .mantine-Tabs-tab { padding-inline: 10px; } }
 
 /* one focus ring everywhere (Mantine controls included), and contrast-checked error/placeholder colours */
 :root[data-mantine-color-scheme] { --mantine-color-error: var(--fail-fg); --mantine-color-placeholder: var(--text-muted); }
@@ -165,3 +166,15 @@ h1 code { font-size: 0.75em; font-weight: 600; }
 .mantine-Input-input::placeholder { color: var(--text-muted); opacity: 1; }
 .cite-kind { font-family: var(--font-sans); font-weight: 600; color: var(--text-muted); padding-right: 4px; border-right: 1px solid var(--border); }
 .status-dict dd.row { gap: var(--sp-2); }
+
+/* mobile headings: smaller h1, ids on their own line so they never break mid-token on narrow screens */
+@media (max-width: 600px) {
+  .page-title { font-size: 1.5rem !important; line-height: 1.25 !important; }
+  .page-title code { display: block; font-size: 0.6em; overflow-wrap: anywhere; margin-top: 2px; }
+}
+.card-title-h { font-size: var(--mantine-h4-font-size); line-height: var(--mantine-h4-line-height); margin: 0; }
+.help-prose, .glossary { max-width: 75ch; }
+
+/* ids in page titles: secondary line in mono, never competing with the title */
+.page-title code { display: block; font-size: 0.55em; font-weight: 500; color: var(--text-muted); margin-top: 4px; overflow-wrap: anywhere; }
+.table-wrap + .table-wrap { margin-top: var(--sp-6); }

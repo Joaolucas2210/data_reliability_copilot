@@ -406,6 +406,22 @@ def record(s: State) -> dict:
             store.transition(
                 conn, "incident", s["incident_id"], r["close_incident"], r.get("reviewer", "human")
             )
+        elif (
+            inc["status"] == "awaiting_review"
+            and not conn.execute(
+                "select 1 from investigation where incident_id=%s and status='awaiting_review'",
+                (s["incident_id"],),
+            ).fetchone()
+        ):
+            # decision recorded, incident not closed: nothing awaits review any more
+            store.transition(
+                conn,
+                "incident",
+                s["incident_id"],
+                "open",
+                r.get("reviewer", "human"),
+                decision=r.get("decision"),
+            )
     return {}
 
 
