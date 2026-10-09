@@ -1,0 +1,46 @@
+{
+ "N": [
+  7,
+  5,
+  7,
+  7,
+  7,
+  5,
+  5,
+  6,
+  7,
+  5
+ ],
+ "S": [
+  7,
+  6,
+  7,
+  6,
+  7,
+  6,
+  7,
+  5
+ ],
+ "U": [
+  7,
+  7,
+  7,
+  8,
+  7,
+  9,
+  7,
+  6,
+  8,
+  8
+ ],
+ "score": 6.52125,
+ "na": [],
+ "not_verified": [
+  "J4 real running state (only mocked; worker went queued->awaiting_review between polls)",
+  "Restricted evidence as viewer (only mocked; no restricted evidence in live data)",
+  "Screen-reader speech output (no real AT; DOM/live-region inspection only)",
+  "Approving an investigation whose proposal is not sandbox-validated (not exercised; would mutate shared data)",
+  "Cancelling a running (vs queued) investigation",
+  "Role switch mid-task with in-flight request"
+ ]
+}

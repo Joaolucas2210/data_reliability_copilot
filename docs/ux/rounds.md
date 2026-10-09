@@ -10,6 +10,7 @@ Evaluators: **E1** usability & information architecture (Nielsen) · **E2** flow
 | Round | Version (commit) | E1 | E2 | E3 | E4 | Mean | Min | N (fixes) | Status |
 |---|---|---|---|---|---|---|---|---|---|
 | R1 | 523898b | 4.92125 | 4.935 | 5.32 | 6.0425 | 5.3047 | **4.92125** | 10 (B01–B12, see r1/backlog.md) | implemented + acceptance-validated, see R1 notes |
+| R2 | f99dd93 | 6.52125 | 7.4325 | 7.33125 | 7.87625 | 7.2903 | **6.52125** | 18 (C01–C18 + Mantine redesign, see r2/backlog.md) | no P0; P1: focus on load, raw codes → implemented in 599e27d (Mantine redesign, acceptance 51/51) |
 
 ## R1 notes
 

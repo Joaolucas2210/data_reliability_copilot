@@ -1,0 +1,45 @@
+{
+ "N": [
+  8,
+  7,
+  7,
+  8,
+  8,
+  7,
+  6,
+  7,
+  8,
+  7
+ ],
+ "S": [
+  8,
+  7,
+  8,
+  8,
+  8,
+  6,
+  7,
+  6
+ ],
+ "U": [
+  8,
+  8,
+  8,
+  8,
+  8,
+  9,
+  6,
+  7,
+  8,
+  9
+ ],
+ "score": 7.432499999999999,
+ "na": [],
+ "not_verified": [
+  "J8 cancel while RUNNING (only observed queued->cancel; running state seen only via mocked response)",
+  "J4 real Running state not observed (worker went queued->awaiting review in ~3 s); verified with mocked response",
+  "N7 status filter lost on back navigation (inferred from code, not exercised)",
+  "Screen-reader output (only live-region text and ARIA inspected, no real AT)",
+  "Touch interaction beyond Playwright isMobile emulation"
+ ]
+}

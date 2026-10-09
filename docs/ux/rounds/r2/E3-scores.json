@@ -1,0 +1,48 @@
+{
+ "N": [
+  8,
+  6,
+  8,
+  7,
+  9,
+  8,
+  6,
+  6,
+  9,
+  8
+ ],
+ "S": [
+  7,
+  6,
+  8,
+  8,
+  9,
+  8,
+  7,
+  6
+ ],
+ "U": [
+  7,
+  6,
+  6,
+  7,
+  6,
+  9,
+  6,
+  7,
+  8,
+  8
+ ],
+ "score": 7.33125,
+ "na": [],
+ "not_verified": [
+  "J5 restricted evidence with real data (no restricted evidence exists; verified only via mocked response + gallery fixture)",
+  "LoadView refresh-failure banner (stale data + failed refresh)",
+  "J4 running state (worker went queued->awaiting review in ~2s; only queued captured)",
+  "Live failed/error validation run (only gallery fixture 5b)",
+  "Approver reject end-to-end (only the guard; the single decision on the fixture was used for approve)",
+  "Screen-reader speech output (only DOM/ARIA and focus inspected)",
+  "Live OS theme switching while page open",
+  "Hover-state visuals"
+ ]
+}
