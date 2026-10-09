@@ -2,7 +2,7 @@ import { Fragment, useEffect, useId, useRef, useState } from "react";
 import { announce, api, canAct, getRole, useApi } from "../api";
 import {
   AccessDenied, ActionButton, Breadcrumbs, Card, DataTable, EmptyState, EpistemicTag, EvidenceRef, fmtClock, fmtCost,
-  fmtTime, LoadView, ModeBanner, NotFound, PageTitle, Status, StatusPill, Tabs,
+  fmtTime, LoadView, ModeBanner, NotFound, PageTitle, revealAndFocus, Status, StatusPill, Tabs,
 } from "../components/ui";
 import { ACTIVE_INVESTIGATION, humanize, statusLabel } from "../status";
 import type { Investigation } from "../types";
@@ -57,7 +57,7 @@ export function InvestigationView({ inv, onChanged, updatedAt }: { inv: Investig
         <Status entity="investigation" value={inv.status} />
         {inv.outcome && <Status entity="outcome" value={inv.outcome} />}
         <span className="muted">
-          {inv.llm_provider}/{inv.llm_model ?? "—"} · prompt {inv.prompt_version}
+          {inv.llm_provider === "fake" ? "Fake LLM (no model)" : `${inv.llm_provider} · ${inv.llm_model ?? "model unknown"}`} · prompt {inv.prompt_version}
           {active && updatedAt && <> · updates automatically · last checked {fmtClock(updatedAt)}</>}
         </span>
       </div>
@@ -86,7 +86,7 @@ export function InvestigationView({ inv, onChanged, updatedAt }: { inv: Investig
                     <div className="claim" key={i}>
                       <div className="row"><EpistemicTag kind="fact" />{unsupported.has(f.statement) && <StatusPill status="fail" label="quote not found in evidence" />}</div>
                       <p>{f.statement}</p>
-                      <blockquote>“{f.quote}”</blockquote>
+                      <blockquote>{quoted(f.quote)}</blockquote>
                       <div className="row">Cites: {refs(f.evidence_ids)}</div>
                     </div>
                   ))
@@ -184,58 +184,35 @@ export function InvestigationView({ inv, onChanged, updatedAt }: { inv: Investig
         <p className="muted">A reference that exists does not prove it supports the claim; quote matching is a deterministic lower bar, not semantic verification.</p>
       </Card>
 
-      <Card title={`Evidence (${inv.evidence.length})`}>
-        {inv.evidence.length ? (
-          inv.evidence.map((e) => (
-            <article className="evidence" key={e.id} id={`ev-${e.id}`} tabIndex={-1} aria-label={`Evidence ${e.id}`}>
-              <div className="row">
-                <code>{e.id}</code> <StatusPill status="info" label={humanize(e.kind)} /> <Status entity="access" value={e.access} />
-              </div>
-              <dl className="kv">
-                <dt>Source</dt>
-                <dd className="mono">{e.source}</dd>
-                <dt>Locator</dt>
-                <dd className="mono">{e.locator}</dd>
-                <dt>Run</dt>
-                <dd className="mono">{e.pipeline_run_id ?? "—"}</dd>
-                <dt>Collected</dt>
-                <dd>{fmtTime(e.collected_at)}</dd>
-                <dt>Version</dt>
-                <dd className="mono">{e.version ?? "—"}</dd>
-              </dl>
-              {e.redacted || e.content == null ? (
-                <AccessDenied message="Content is restricted for your role." needed="investigator" />
-              ) : (
-                <pre tabIndex={0} aria-label={`Evidence ${e.id} content (untrusted data)`}>{e.content}</pre>
-              )}
-            </article>
-          ))
-        ) : (
-          <EmptyState title={active ? "Evidence appears here as tools return results" : "No evidence collected"} />
-        )}
-      </Card>
+      <EvidenceList evidence={inv.evidence} active={active} />
 
       <div className="grid">
         <Card title="Usage & limits">
           <dl className="kv">
             <dt>LLM calls</dt>
-            <dd>{inv.usage.llm_calls}</dd>
+            <dd>{inv.usage.llm_calls ?? (active ? "not started" : "—")}</dd>
             <dt>Tokens in / out</dt>
             <dd>{inv.usage.input_tokens ?? "unknown"} / {inv.usage.output_tokens ?? "unknown"}</dd>
             <dt>Cost</dt>
-            <dd>{fmtCost(inv.usage.cost_usd, inv.usage.cost_status)} <span className="muted">({inv.usage.cost_status})</span></dd>
+            <dd>
+              {fmtCost(inv.usage.cost_usd, inv.usage.cost_status)}
+              {inv.usage.cost_status && inv.usage.cost_usd != null && <span className="muted"> ({inv.usage.cost_status})</span>}
+            </dd>
             <dt>Tool calls</dt>
-            <dd>{inv.usage.tool_calls ?? "unknown"}</dd>
+            <dd>{inv.usage.tool_calls ?? (active ? "not started" : "—")}</dd>
             <dt>Wall time</dt>
-            <dd>{inv.usage.wall_ms != null ? `${inv.usage.wall_ms} ms` : "unknown"}</dd>
-            <dt>Limit hit</dt>
-            <dd>{inv.usage.limit_hit ?? "none"}</dd>
+            <dd>{inv.usage.wall_ms != null ? fmtMs(inv.usage.wall_ms) : "—"}</dd>
+            <dt>Limit reached</dt>
+            <dd>{inv.usage.limit_hit ? LIMIT_LABEL[inv.usage.limit_hit]?.[0] ?? humanize(inv.usage.limit_hit) : "none"}</dd>
             <dt>Fallbacks</dt>
             <dd>{inv.usage.fallbacks?.length ? inv.usage.fallbacks.map((f) => `${f.from} (${f.reason})`).join(", ") : "none"}</dd>
+          </dl>
+          <h3>Limits for this investigation</h3>
+          <dl className="kv">
             {Object.entries(inv.limits).map(([k, v]) => (
               <Fragment key={k}>
-                <dt>limit {k}</dt>
-                <dd>{String(v)}</dd>
+                <dt>{LIMIT_LABEL[k]?.[0] ?? humanize(k)}</dt>
+                <dd>{LIMIT_LABEL[k]?.[1](v) ?? String(v)}</dd>
               </Fragment>
             ))}
           </dl>
@@ -351,7 +328,13 @@ function DecisionPanel({ inv }: { inv: Investigation }) {
 }
 
 function ReviewCard({ inv, onChanged }: { inv: Investigation; onChanged?: () => void }) {
-  const [note, setNote] = useState("");
+  const draftKey = `drc.reviewDraft.${inv.id}`;
+  const [note, setNoteState] = useState(() => sessionStorage.getItem(draftKey) ?? "");
+  const setNote = (v: string) => {
+    setNoteState(v);
+    if (v) sessionStorage.setItem(draftKey, v);
+    else sessionStorage.removeItem(draftKey);
+  };
   const [resolve, setResolve] = useState(true);
   const [noteError, setNoteError] = useState<string | null>(null);
   const noteRef = useRef<HTMLTextAreaElement>(null);
@@ -364,6 +347,7 @@ function ReviewCard({ inv, onChanged }: { inv: Investigation; onChanged?: () => 
       body: JSON.stringify({ decision, note, close_incident: decision === "approve" && resolve ? "resolved" : null }),
     });
     sessionStorage.setItem("drc.focusDecision", inv.id);
+    sessionStorage.removeItem(draftKey);
     announce(`Decision recorded: diagnosis ${decision === "approve" ? "approved" : "rejected"}.`);
     onChanged?.();
   };
@@ -415,5 +399,107 @@ function ReviewCard({ inv, onChanged }: { inv: Investigation; onChanged?: () => 
         </>
       )}
     </Card>
+  );
+}
+
+const LIMIT_LABEL: Record<string, [string, (v: unknown) => string]> = {
+  max_rounds: ["Max investigation rounds", (v) => String(v)],
+  max_tool_calls: ["Max tool calls", (v) => String(v)],
+  max_llm_calls: ["Max LLM calls", (v) => String(v)],
+  max_input_tokens: ["Max input tokens", (v) => Number(v).toLocaleString("en-US")],
+  max_wall_s: ["Max wall time", (v) => `${v} s`],
+  max_cost_usd: ["Max cost", (v) => `$${Number(v).toFixed(2)}`],
+};
+
+function fmtMs(ms: number) {
+  return ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`;
+}
+
+/** Wrap a quote in typographic quotes unless it already starts/ends with a quote character. */
+function quoted(q: string) {
+  return /^["“']/.test(q) && /["”']$/.test(q) ? q : `“${q}”`;
+}
+
+function EvidenceList({ evidence, active }: { evidence: Investigation["evidence"]; active: boolean }) {
+  const [allOpen, setAllOpen] = useState<{ open: boolean; v: number }>({ open: false, v: 0 });
+  return (
+    <Card
+      title={`Evidence (${evidence.length})`}
+      actions={
+        evidence.length > 0 && (
+          <button type="button" className="btn" aria-expanded={allOpen.open} onClick={() => setAllOpen((a) => ({ open: !a.open, v: a.v + 1 }))}>
+            {allOpen.open ? "Collapse all" : "Expand all"}
+          </button>
+        )
+      }
+    >
+      <p className="muted">Evidence is untrusted data collected by bounded tools. Citation chips above open the item they point to.</p>
+      {evidence.length ? (
+        evidence.map((e) => <EvidenceItem key={e.id} e={e} allOpen={allOpen} />)
+      ) : (
+        <EmptyState title={active ? "Evidence appears here as tools return results" : "No evidence collected"} />
+      )}
+    </Card>
+  );
+}
+
+function EvidenceItem({ e, allOpen }: { e: Investigation["evidence"][number]; allOpen: { open: boolean; v: number } }) {
+  const [open, setOpen] = useState(false);
+  const [origin, setOrigin] = useState<string | null>(null);
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (allOpen.v) setOpen(allOpen.open);
+  }, [allOpen]);
+  useEffect(() => {
+    const on = (ev: Event) => {
+      const { target, origin: o } = (ev as CustomEvent<{ target: string; origin: string }>).detail;
+      if (target !== e.id) return;
+      setOrigin(o);
+      setOpen(true);
+      requestAnimationFrame(() => revealAndFocus(ref.current));
+    };
+    addEventListener("drc:cite", on);
+    return () => removeEventListener("drc:cite", on);
+  }, [e.id]);
+  const first = (e.content ?? "").split("\n")[0];
+  return (
+    <article className="evidence" id={`ev-${e.id}`} ref={ref} tabIndex={-1} aria-label={`Evidence ${e.id}`}>
+      <details open={open} onToggle={(ev) => setOpen((ev.currentTarget as HTMLDetailsElement).open)}>
+        <summary>
+          <code>{e.id}</code> <StatusPill status="info" label={humanize(e.kind)} /> <Status entity="access" value={e.access} />
+          {!open && first && <span className="evidence-preview muted">{first.length > 110 ? first.slice(0, 110) + "…" : first}</span>}
+        </summary>
+        <dl className="kv">
+          <dt>Source</dt>
+          <dd className="mono">{e.source}</dd>
+          <dt>Locator</dt>
+          <dd className="mono">{e.locator}</dd>
+          <dt>Run</dt>
+          <dd className="mono">{e.pipeline_run_id ?? "—"}</dd>
+          <dt>Collected</dt>
+          <dd className="mono">{fmtTime(e.collected_at)}</dd>
+          <dt>Version</dt>
+          <dd className="mono">{e.version ?? "—"}</dd>
+        </dl>
+        {e.redacted || e.content == null ? (
+          <AccessDenied message="Content is restricted for your role." needed="investigator" />
+        ) : (
+          <pre tabIndex={0} aria-label={`Evidence ${e.id} content (untrusted data)`}>{e.content}</pre>
+        )}
+      </details>
+      {origin && (
+        <button
+          type="button"
+          className="btn btn-link"
+          onClick={() => {
+            const o = document.getElementById(origin);
+            revealAndFocus(o);
+            setOrigin(null);
+          }}
+        >
+          <span aria-hidden="true">↩ </span>Back to the claim
+        </button>
+      )}
+    </article>
   );
 }

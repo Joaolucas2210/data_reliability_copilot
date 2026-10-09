@@ -87,11 +87,15 @@ def health(_: Role = Depends(role)) -> list[dict]:
 
 @app.get("/api/incidents")
 def incidents(status: str | None = None, limit: int = 50, _: Role = Depends(role)) -> list[dict]:
+    # "unresolved" = every non-terminal status (what the health page counts)
+    unresolved = status == "unresolved"
     return _all(
         "select id,title,severity,status,dataset_id,occurrences,opened_at,updated_at,closed_at from incident"
-        " where (%s::text is null or status=%s) order by opened_at desc limit %s",
+        " where (%s::text is null or status=%s or (%s and status not in ('resolved','dismissed')))"
+        " order by opened_at desc limit %s",
+        None if unresolved else status,
         status,
-        status,
+        unresolved,
         min(limit, 200),
     )
 

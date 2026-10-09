@@ -94,7 +94,7 @@ export function ValidationView({ v, updatedAt }: { v: ValidationRun; updatedAt?:
               <div>
                 <strong>{STEP_INFO[s.name]?.[0] ?? s.name}</strong>
                 <div className="muted">{STEP_INFO[s.name]?.[1]}</div>
-                {s.detail != null && <div className="mono detail">{fmtValue(s.detail)}</div>}
+                {s.detail != null && <StepDetail detail={s.detail} />}
               </div>
               <span>
                 <Status entity="check" value={s.status} />
@@ -113,7 +113,7 @@ export function ValidationView({ v, updatedAt }: { v: ValidationRun; updatedAt?:
             columns={[
               { header: "Check", render: (c) => c.name },
               { header: "Result", render: (c) => <StatusPill status={c.passed ? "pass" : "fail"} label={c.passed ? "isolated" : "NOT isolated"} /> },
-              { header: "Detail", render: (c) => <span className="mono detail">{fmtValue(c.detail)}</span> },
+              { header: "Detail", render: (c) => (typeof c.detail === "string" ? <span className="detail">{c.detail}</span> : <StepDetail detail={c.detail} />) },
             ]}
           />
         </Card>
@@ -163,4 +163,39 @@ function fmtInvariant(r: unknown) {
   if (r == null || typeof r !== "object") return fmtValue(r);
   const { passed, violations, diff } = r as { passed?: boolean; violations?: number | null; diff?: string | null };
   return `${passed ? "holds" : "violated"} · violations ${violations ?? "?"} · diff ${diff ?? "?"}`;
+}
+
+/** Structured stage details as readable key/value pairs (collapsed), with the raw JSON one click away. */
+function StepDetail({ detail }: { detail: unknown }) {
+  if (detail == null) return null;
+  if (typeof detail !== "object") return <div className="detail">{String(detail)}</div>;
+  const entries = Object.entries(detail as Record<string, unknown>);
+  return (
+    <details className="step-detail">
+      <summary>Details ({entries.length} {entries.length === 1 ? "item" : "items"})</summary>
+      <dl className="kv kv-compact">
+        {entries.map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="mono">{k}</dt>
+            <dd>{fmtDetailValue(v)}</dd>
+          </div>
+        ))}
+      </dl>
+      <details>
+        <summary>Raw JSON</summary>
+        <pre tabIndex={0} aria-label="Raw stage detail">{JSON.stringify(detail, null, 2)}</pre>
+      </details>
+    </details>
+  );
+}
+
+function fmtDetailValue(v: unknown) {
+  if (typeof v === "boolean") return v ? "yes" : "no";
+  if (Array.isArray(v)) return v.length ? v.join(", ") : "none";
+  if (v && typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    if ("src" in o && "copy" in o) return <>{o.src === o.copy ? "matches" : "DIFFERS"} — source {String(o.src)}, copy {String(o.copy)}</>;
+    return Object.entries(o).map(([k, x]) => `${k}: ${typeof x === "object" ? JSON.stringify(x) : String(x)}`).join(" · ");
+  }
+  return fmtValue(v);
 }

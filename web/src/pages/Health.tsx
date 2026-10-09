@@ -36,13 +36,16 @@ export function HealthCards({ rows }: { rows: PipelineHealth[] }) {
               </dd>
               <dt>Freshness</dt>
               <dd><Status entity="freshness" value={p.freshness} /></dd>
-              <dt>Open incidents</dt>
-              <dd>{p.open_incidents ? <a href="#/incidents">{p.open_incidents} open</a> : "none"}</dd>
+              <dt>Unresolved incidents</dt>
+              <dd>{p.open_incidents ? <a href="#/incidents?status=unresolved">{p.open_incidents} unresolved</a> : "none"}</dd>
               <dt>dbt</dt>
               <dd className="mono">{p.last_run.dbt_version ?? "—"}</dd>
             </dl>
             {p.last_run.status === "succeeded" && (p.checks.fail > 0 || p.checks.error > 0) && (
-              <p className="muted">The run finished successfully, but quality checks failed: report contents may be wrong.</p>
+              <p className="banner tone-warn" role="note">
+                <strong>The run succeeded, but {p.checks.fail + p.checks.error} quality check{p.checks.fail + p.checks.error === 1 ? "" : "s"} failed</strong> — the report it
+                produced may be wrong. <a href="#/incidents?status=unresolved">Review unresolved incidents</a>.
+              </p>
             )}
           </Card>
         );

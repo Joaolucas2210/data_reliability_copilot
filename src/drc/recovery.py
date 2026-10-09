@@ -62,7 +62,7 @@ def isolation_checks(sandbox_db: str) -> list[dict]:
         except psycopg.OperationalError as e:
             msg = " ".join(str(e).split())
             denied = f'permission denied for database "{db}"' in msg
-            out.append({"name": f"sandbox_role_cannot_connect_{db}", "passed": denied, "detail": msg[-160:]})
+            out.append({"name": f"sandbox_role_cannot_connect_{db}", "passed": denied, "detail": msg[:400]})
     with psycopg.connect(settings.sandbox_dsn(sandbox_db)) as c:
         db, user = c.execute("select current_database(), current_user").fetchone()  # type: ignore[misc]
         superuser = c.execute("select rolsuper from pg_roles where rolname=current_user").fetchone()[0]  # type: ignore[index]

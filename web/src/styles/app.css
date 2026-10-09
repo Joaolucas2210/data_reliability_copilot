@@ -168,3 +168,42 @@ textarea[aria-invalid="true"] { border-color: var(--fail-fg); border-width: 2px;
   table.stack-sm td code, table.stack-sm td a { overflow-wrap: anywhere; min-width: 0; }
   .table-wrap { overflow-x: visible; }
 }
+
+/* ---------- round 2 prep ---------- */
+.contents { display: contents; }
+.nav-foot { margin: var(--sp-2) 0 0; font-size: var(--fs-sm); }
+.nav-foot a { display: inline; padding: 0; min-height: 0; }
+@media (min-width: 960px) { .nav-foot { margin-top: var(--sp-6); padding: 0 var(--sp-3); } }
+.filter-row { margin-bottom: var(--sp-4); }
+.btn-link { border: 0; background: none; color: var(--link); padding: var(--sp-1) 0; text-decoration: underline; min-height: var(--target-min); }
+.btn-link:hover { background: none; }
+
+.evidence summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); min-height: var(--target-min); }
+.evidence summary code { overflow-wrap: anywhere; }
+.evidence-preview { flex-basis: 100%; font-family: var(--font-mono); font-size: var(--fs-xs); overflow-wrap: anywhere; }
+.evidence details[open] > summary { margin-bottom: var(--sp-2); }
+/* motion that explains a jump: briefly highlight the evidence a citation led to (disabled for reduced motion) */
+@keyframes flash { from { box-shadow: 0 0 0 4px var(--focus); } to { box-shadow: 0 0 0 0 transparent; } }
+.evidence.flash { animation: flash 1.2s ease-out 1; }
+@media (prefers-reduced-motion: reduce) { .evidence.flash { animation: none; } }
+
+.step-detail { margin-top: var(--sp-1); font-size: var(--fs-sm); }
+.step-detail summary { cursor: pointer; color: var(--link); min-height: var(--target-min); display: inline-flex; align-items: center; }
+.step-detail pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--fs-xs); background: var(--surface-2); padding: var(--sp-2); border-radius: var(--radius-sm); max-height: 14rem; overflow: auto; }
+.kv-compact { gap: var(--sp-1) var(--sp-3); margin: var(--sp-2) 0; }
+.kv-compact dt { font-size: var(--fs-xs); }
+
+.toc ul { list-style: none; padding: 0; margin: var(--sp-4) 0; display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); font-size: var(--fs-sm); }
+.glossary { margin: 0; }
+.glossary-item { padding: var(--sp-3) 0; border-bottom: 1px solid var(--border); }
+.glossary dt { font-weight: 700; margin-bottom: var(--sp-1); }
+.glossary dd { margin: 0; }
+.glossary dd .pill, .glossary dd .epi { margin: 0 var(--sp-1); }
+
+.status-dict dd { margin-bottom: var(--sp-2); }
+.gallery-actions { align-items: flex-start; }
+.embedded-title { font-size: var(--fs-lg); margin-bottom: var(--sp-3); }
+.screen-previews { opacity: 1; }
+
+/* text spacing (WCAG 1.4.12): pills may wrap instead of overflowing */
+.pill, .epi { white-space: normal; text-align: left; }

@@ -1,46 +1,78 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { announce, api, canAct, useApi } from "../api";
 import { ActionButton, Breadcrumbs, Card, DataTable, EmptyState, fmtTime, LoadView, NotFound, PageTitle, Status, Timeline } from "../components/ui";
 import { humanize, OPEN_INVESTIGATION, statusLabel } from "../status";
 import type { AuditEvent, Incident, IncidentDetail, QualityCheckResult } from "../types";
 
 const INCIDENT_STATUSES = ["open", "investigating", "awaiting_review", "resolved", "dismissed"];
+const FILTER_LABEL = (s: string) => (s === "unresolved" ? "Unresolved (open, investigating or awaiting review)" : statusLabel("incident", s));
 
-export function IncidentList() {
-  const [status, setStatus] = useState("");
+export function IncidentList({ initialStatus = "" }: { initialStatus?: string }) {
+  const [status, setStatus] = useState(initialStatus);
   const [load, reload] = useApi<Incident[]>(`/incidents${status ? `?status=${status}` : ""}`);
+  const changed = useRef(false);
+
+  const choose = (s: string) => {
+    setStatus(s);
+    changed.current = true;
+    // keep the filter in the URL (reload/back/share) without adding a history entry per change
+    history.replaceState(null, "", `#/incidents${s ? `?status=${s}` : ""}`);
+  };
+  useEffect(() => {
+    if (load.state === "ok" && changed.current) {
+      changed.current = false;
+      announce(`${load.data.length} incident${load.data.length === 1 ? "" : "s"}${status ? ` with status ${FILTER_LABEL(status).toLowerCase()}` : ""}.`);
+    }
+  }, [load, status]);
+
   return (
     <>
       <PageTitle>Incidents</PageTitle>
-      <div className="row" style={{ marginBottom: "var(--sp-4)" }}>
+      <div className="row filter-row">
         <label>
           Status{" "}
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+          <select value={status} onChange={(e) => choose(e.target.value)}>
             <option value="">All statuses</option>
+            <option value="unresolved">Unresolved</option>
             {INCIDENT_STATUSES.map((s) => <option key={s} value={s}>{statusLabel("incident", s)}</option>)}
           </select>
         </label>
+        {load.state === "ok" && <span className="muted">{load.data.length} shown{load.data.length === 200 ? " (first 200)" : ""}</span>}
       </div>
       <LoadView load={load} onRetry={reload}>
-        {(rows) => <IncidentTable rows={rows} />}
+        {(rows) => (
+          <IncidentTable
+            rows={rows}
+            empty={
+              status ? (
+                <EmptyState
+                  title={`No incidents with status “${FILTER_LABEL(status)}”`}
+                  hint={<button type="button" className="btn" onClick={() => choose("")}>Show all incidents</button>}
+                />
+              ) : (
+                <EmptyState title="No incidents yet" hint="Incidents appear here when a quality check fails after a pipeline run." />
+              )
+            }
+          />
+        )}
       </LoadView>
     </>
   );
 }
 
-export function IncidentTable({ rows }: { rows: Incident[] }) {
+export function IncidentTable({ rows, empty }: { rows: Incident[]; empty?: ReactNode }) {
   return (
     <DataTable
       caption="Incidents, newest first"
       rows={rows}
       rowKey={(r) => r.id}
-      empty={<EmptyState title="No incidents" hint="Deterministic checks have not opened any incident for this filter." />}
+      empty={empty ?? <EmptyState title="No incidents yet" />}
       columns={[
         { header: "Incident", render: (r) => <a href={`#/incidents/${r.id}`}>{r.title}</a> },
         { header: "Severity", render: (r) => <Status entity="severity" value={r.severity} /> },
         { header: "Status", render: (r) => <Status entity="incident" value={r.status} /> },
         { header: "Dataset", render: (r) => <code>{r.dataset_id ?? "—"}</code> },
-        { header: "Seen", render: (r) => `${r.occurrences}×`, numeric: true },
+        { header: "Occurrences", render: (r) => r.occurrences, numeric: true },
         { header: "Opened", render: (r) => fmtTime(r.opened_at) },
       ]}
     />
@@ -150,7 +182,7 @@ function eventItem(e: AuditEvent) {
     at: e.at,
     title: (
       <>
-        <strong>{humanize(e.action)}</strong> {e.entity_type} <code>{e.entity_id}</code>
+        <strong>{humanize(e.action)}</strong> {humanize(e.entity_type).toLowerCase()} <EntityLink type={e.entity_type} id={e.entity_id} />
         {e.to_status && <> {e.from_status ? humanize(e.from_status) : "∅"} → {humanize(e.to_status)}</>}
         {decision && <> · <Status entity="decision" value={decision} /></>}
       </>
@@ -181,4 +213,11 @@ export function CheckTable({ rows }: { rows: QualityCheckResult[] }) {
       ]}
     />
   );
+}
+
+const ENTITY_ROUTE: Record<string, string> = { incident: "#/incidents/", investigation: "#/investigations/", validation: "#/validation-runs/" };
+
+function EntityLink({ type, id }: { type: string; id: string }) {
+  const base = ENTITY_ROUTE[type];
+  return base ? <a href={base + id} className="mono">{id}</a> : <code>{id}</code>;
 }

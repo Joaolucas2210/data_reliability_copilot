@@ -167,6 +167,25 @@ def detect(run_id: str) -> str | None:
             return _open_incident(conn, run_id, failing)
 
 
+def incident_title(check_names: list[str]) -> str:
+    """Plain-language incident title from the failing checks (the check names stay visible on the incident page)."""
+    phrases = []
+    if any(n.startswith("model_error_") for n in check_names):
+        phrases.append("A transformation failed to build")
+    if any(n.startswith("contract_") for n in check_names):
+        phrases.append("A model broke its schema contract")
+    if any(n.startswith("unique_") or n.endswith("_unique") for n in check_names):
+        phrases.append("Duplicate records")
+    if any(n.startswith("freshness_") for n in check_names):
+        phrases.append("Source data is late")
+    if any(n.startswith("inv_reconciliation") for n in check_names):
+        phrases.append("Report does not match control totals")
+    if not phrases:
+        phrases.append("Quality checks failed")
+    n = len(check_names)
+    return f"{'; '.join(phrases[:2])} ({n} failing check{'' if n == 1 else 's'})"
+
+
 def _open_incident(conn: psycopg.Connection[Any], run_id: str, failing: list[dict]) -> str:
     # ponytail: fingerprint = pipeline + sorted failing check names; per-dataset grouping when incidents get noisy
     names = [f["check_name"] for f in failing]
@@ -194,7 +213,7 @@ def _open_incident(conn: psycopg.Connection[Any], run_id: str, failing: list[dic
         sev = (
             "high" if any(f["check_type"] in ("invariant", "schema_contract") for f in failing) else "medium"
         )
-        title = f"{len(failing)} failing check(s): " + ", ".join(names[:3])
+        title = incident_title(names)
         dataset = next(
             (f["dataset_id"] for f in failing if f["check_type"] == "invariant"), failing[0]["dataset_id"]
         )

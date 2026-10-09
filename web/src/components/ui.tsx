@@ -1,4 +1,4 @@
-import { Component, useEffect, useId, useRef, useState, type ErrorInfo, type KeyboardEvent, type ReactNode } from "react";
+import { Component, createContext, useContext, useEffect, useId, useRef, useState, type ErrorInfo, type KeyboardEvent, type ReactNode } from "react";
 import { errorMessage, type Load } from "../api";
 import { statusDef, type Entity } from "../status";
 import type { Status as LegacyStatus } from "../types";
@@ -88,9 +88,13 @@ export function SkipLink() {
   );
 }
 
+/** Inside the design-system gallery, page views are embedded examples: their titles become h2 (one h1 per page). */
+export const EmbeddedContext = createContext(false);
+
 /** Page heading that receives focus on SPA navigation (App focuses `main h1`). */
 export function PageTitle({ children }: { children: ReactNode }) {
-  return <h1 tabIndex={-1}>{children}</h1>;
+  const embedded = useContext(EmbeddedContext);
+  return embedded ? <h2 className="embedded-title">{children}</h2> : <h1 tabIndex={-1}>{children}</h1>;
 }
 
 export function Breadcrumbs({ items }: { items: { href?: string; label: ReactNode }[] }) {
@@ -254,15 +258,26 @@ export function EvidenceRef({ id, exists = true }: { id: string; exists?: boolea
       type="button"
       className="cite"
       aria-label={`Show evidence ${id}`}
-      onClick={() => {
-        const el = document.getElementById(`ev-${id}`);
-        el?.scrollIntoView({ block: "center" });
-        el?.focus();
+      onClick={(e) => {
+        const origin = e.currentTarget;
+        if (!origin.id) origin.id = `cite-${id}-${Math.random().toString(36).slice(2, 8)}`;
+        window.dispatchEvent(new CustomEvent("drc:cite", { detail: { target: id, origin: origin.id } }));
       }}
     >
       {id}
     </button>
   );
+}
+
+/** Scroll an element into view and focus it: smooth (continuity) unless the user prefers reduced motion. */
+export function revealAndFocus(el: HTMLElement | null) {
+  if (!el) return;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  el.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+  el.focus({ preventScroll: true });
+  el.classList.remove("flash");
+  void el.offsetWidth; // restart the highlight animation
+  el.classList.add("flash");
 }
 
 // ---------- states ----------
@@ -295,8 +310,9 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
 }
 
 export function AccessDenied({ message, needed }: { message?: string; needed?: string }) {
+  // a static notice rendered with the page, not an event: role=note (alerts would interrupt on every page load)
   return (
-    <div className="state tone-unknown" role="alert">
+    <div className="state tone-unknown" role="note">
       <p className="state-title"><span aria-hidden="true">⊘ </span>Access denied</p>
       <p>{message || "Your role cannot see this resource."}{needed && <> Required role: <strong>{needed}</strong>.</>}</p>
     </div>
