@@ -1,0 +1,25 @@
+# Credentials come only from env vars (set by `drc` CLI / Makefile; cloud: Key Vault -> env).
+drc_finance:
+  target: "{{ env_var('DRC_DBT_TARGET', 'prod') }}"
+  outputs:
+    prod:
+      type: postgres
+      host: "{{ env_var('DRC_PG_HOST', 'localhost') }}"
+      port: "{{ env_var('DRC_PG_PORT', '55432') | int }}"
+      user: dbt_prod
+      password: "{{ env_var('DRC_DBT_PROD_PASSWORD') }}"
+      dbname: warehouse
+      schema: analytics
+      threads: 2
+      connect_timeout: 10
+    sandbox:
+      # Separate database AND separate role with no CONNECT on `warehouse` (ADR-0007).
+      type: postgres
+      host: "{{ env_var('DRC_PG_HOST', 'localhost') }}"
+      port: "{{ env_var('DRC_PG_PORT', '55432') | int }}"
+      user: sandbox_rw
+      password: "{{ env_var('DRC_SANDBOX_PASSWORD') }}"
+      dbname: "{{ env_var('DRC_SANDBOX_DB') }}"
+      schema: analytics
+      threads: 2
+      connect_timeout: 10

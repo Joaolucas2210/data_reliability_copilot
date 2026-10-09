@@ -1,0 +1,21 @@
+version: 2
+models:
+  - name: fct_payments
+    config: {contract: {enforced: true}}
+    columns:
+      - {name: payment_id, data_type: text, constraints: [{type: not_null}], data_tests: [unique, not_null]}
+      - {name: installment_id, data_type: text}
+      - {name: contract_id, data_type: text}
+      - {name: customer_id, data_type: text}
+      - {name: paid_at, data_type: timestamp}
+      - {name: paid_date, data_type: date}
+      - {name: amount, data_type: "numeric(14,2)", data_tests: [not_null]}
+      - {name: channel, data_type: text}
+      - {name: _batch_id, data_type: text}
+  - name: rpt_daily_collections
+    config: {contract: {enforced: true}}
+    columns:
+      - {name: business_date, data_type: date, data_tests: [unique, not_null]}
+      - {name: payments_count, data_type: bigint}
+      - {name: collected_amount, data_type: "numeric(16,2)"}
+      - {name: contracts_paid, data_type: bigint}

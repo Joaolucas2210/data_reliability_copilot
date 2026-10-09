@@ -1,0 +1,30 @@
+version: 2
+sources:
+  - name: raw
+    schema: raw
+    loaded_at_field: _loaded_at
+    freshness:
+      warn_after: {count: 26, period: hour}
+      error_after: {count: 48, period: hour}
+    tables:
+      - name: customers
+      - name: contracts
+      - name: installments
+      - name: payments
+        description: Payments delivered by the ingestion job (one row per payment per delivery attempt).
+        columns:
+          - {name: payment_id, data_type: text}
+          - {name: installment_id, data_type: text}
+          - {name: paid_at, data_type: timestamp without time zone}
+          - {name: amount, data_type: numeric}
+          - {name: channel, data_type: text}
+          - {name: _batch_id, data_type: text}
+          - {name: _loaded_at, data_type: timestamp with time zone}
+        config:
+          elementary:
+            timestamp_column: _loaded_at
+        tests:
+          - elementary.volume_anomalies:
+              timestamp_column: _loaded_at
+              time_bucket: {period: day, count: 1}
+              config: {severity: warn, tags: [anomaly]}

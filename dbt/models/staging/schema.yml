@@ -1,0 +1,13 @@
+version: 2
+models:
+  - name: stg_contracts
+    columns:
+      - name: contract_id
+        data_tests: [unique, not_null]
+      - name: customer_id
+        data_tests:
+          - relationships: {to: ref('stg_customers'), field: customer_id}
+  - name: stg_installments
+    columns:
+      - name: installment_id
+        data_tests: [unique, not_null]
