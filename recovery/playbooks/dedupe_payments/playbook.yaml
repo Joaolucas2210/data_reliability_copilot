@@ -1,0 +1,5 @@
+id: dedupe_payments
+description: Deduplicate stg_payments by payment_id keeping the earliest _loaded_at
+replaces: [models/staging/stg_payments.sql]   # only these files may change
+expected_effects:
+  must_pass: [inv_payment_id_unique, inv_reconciliation_amount, inv_reconciliation_count, unique_fct_payments_payment_id]
