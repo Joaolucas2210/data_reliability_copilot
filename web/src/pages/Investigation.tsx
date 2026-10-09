@@ -1,9 +1,10 @@
-import { Accordion, Alert, Button, Checkbox, Group, Loader, Paper, SimpleGrid, Stack, Text, Textarea, ThemeIcon } from "@mantine/core";
+import { modals } from "@mantine/modals";
+import { Accordion, Alert, Badge, Button, Checkbox, Group, Loader, Paper, SimpleGrid, Stack, Text, Textarea, ThemeIcon } from "@mantine/core";
 import {
   IconAlertTriangle, IconCircleCheck, IconClockHour4, IconFlask2, IconGavel, IconPlayerStop, IconShieldCheck, IconThumbDown, IconThumbUp,
 } from "@tabler/icons-react";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { announce, announceStatus, api, canAct, getRole, useApi } from "../api";
+import { announce, announceStatus, api, ApiError, canAct, getRole, useApi } from "../api";
 import {
   AccessDenied, ActionButton, BackToClaim, Breadcrumbs, Card, DataTable, EmptyState, EpistemicTag, EvidenceRef, fmtClock, fmtCost, fmtTime,
   LoadView, ModeBanner, NotFound, PageTitle, revealAndFocus, Status, StatusPill, Tabs,
@@ -35,12 +36,15 @@ export function InvestigationPage({ id }: { id: string }) {
       <Breadcrumbs
         items={[
           { href: "#/incidents", label: "Incidents" },
-          ...(load.state === "ok" ? [{ href: `#/incidents/${load.data.incident_id}`, label: "Incident" }] : []),
+          { href: load.state === "ok" ? `#/incidents/${load.data.incident_id}` : undefined, label: "Incident" }, // reserved while loading: no layout shift
           { label: "Investigation" },
         ]}
       />
       {/* one persistent h1 through loading → loaded so focus placed on it survives (C01) */}
       <PageTitle>{notFound ? "Investigation not found" : <>Investigation {load.state === "ok" ? <code>{load.data.id}</code> : <code>{id}</code>}</>}</PageTitle>
+      {load.state === "ok" && load.data.incident_title && (
+        <Text c="dimmed" mt={-8} mb="md">For incident <a href={`#/incidents/${load.data.incident_id}`}>{load.data.incident_title}</a></Text>
+      )}
       <LoadView load={load} onRetry={reload} notFound={<NotFound what="investigation" id={id} back={{ href: "#/incidents", label: "Back to incidents" }} />}>
         {(inv) => <InvestigationView inv={inv} onChanged={reload} updatedAt={load.state === "ok" ? load.updatedAt : undefined} showTitle={false} />}
       </LoadView>
@@ -55,6 +59,13 @@ export function InvestigationView({ inv, onChanged, updatedAt, showTitle = true 
   const kinds = new Map(inv.evidence.map((e) => [e.id, humanize(e.kind)]));
   const refs = (ids: string[]) => ids.map((id) => <EvidenceRef key={id} id={id} kind={kinds.get(id)} exists={known.has(id)} />);
   const active = ACTIVE_INVESTIGATION.has(inv.status);
+  const wasActive = useRef(active);
+  useEffect(() => {
+    if (wasActive.current && !active) {
+      modals.closeAll(); // e.g. "Cancel this investigation?" no longer applies
+    }
+    wasActive.current = active;
+  }, [active]);
   const ended = !d && !active && !inv.evidence.length && !inv.tool_calls.length; // cancelled / failed with nothing collected: hide empty sections
 
   return (
@@ -62,7 +73,7 @@ export function InvestigationView({ inv, onChanged, updatedAt, showTitle = true 
       {showTitle && <PageTitle>Investigation <code>{inv.id}</code></PageTitle>}
       <ModeBanner mode={inv.mode} costStatus={inv.usage.cost_status} />
       <Group gap="xs" mb="lg" wrap="wrap">
-        <Status entity="investigation" value={inv.status} />
+        {inv.review ? <Status entity="decision" value={inv.review.decision} /> : <Status entity="investigation" value={inv.status} />}
         {inv.outcome && <Status entity="outcome" value={inv.outcome} />}
         <Text size="sm" c="dimmed">
           {inv.llm_provider === "fake" ? "Fake LLM (no model)" : `${inv.llm_provider} · ${inv.llm_model ?? "model unknown"}`} · prompt {inv.prompt_version}
@@ -111,8 +122,8 @@ export function InvestigationView({ inv, onChanged, updatedAt, showTitle = true 
                       <Group gap="xs" mb={4}>
                         <EpistemicTag kind="hypothesis" />
                         <Status entity="hypothesis" value={h.status} />
-                        {h.cause_category && <Text span size="sm" fw={600}>{causeLabel(h.cause_category)}</Text>}
                       </Group>
+                      {h.cause_category && <Text fw={600}>{causeLabel(h.cause_category)}</Text>}
                       <Text>{h.statement}</Text>
                       <Group gap="xs" mt={6}>Supporting: {h.supporting_evidence_ids.length ? refs(h.supporting_evidence_ids) : <Text span c="dimmed" size="sm">none</Text>}</Group>
                       <Group gap="xs" mt={6}>Contradicting: {h.contradicting_evidence_ids.length ? refs(h.contradicting_evidence_ids) : <Text span c="dimmed" size="sm">none</Text>}</Group>
@@ -124,7 +135,7 @@ export function InvestigationView({ inv, onChanged, updatedAt, showTitle = true 
               },
               {
                 id: "gaps",
-                label: "Gaps & contradictions",
+                label: "Gaps",
                 content: (
                   <>
                     <h3>Missing information</h3>
@@ -136,7 +147,7 @@ export function InvestigationView({ inv, onChanged, updatedAt, showTitle = true 
               },
               {
                 id: "rec",
-                label: "Recommendation",
+                label: "Next step",
                 content: (
                   <>
                     <div className="claim">
@@ -267,7 +278,13 @@ function NoDiagnosis({ inv, onChanged }: { inv: Investigation; onChanged?: () =>
           disabledReason={canAct("investigator") ? undefined : "Requires the investigator role"}
           confirm={{ title: "Cancel this investigation?", prompt: "It stops at its next step and cannot be resumed. You can start a new one from the incident.", confirmLabel: "Yes, cancel it" }}
           onAction={async () => {
-            const r = await api<{ result: string }>(`/investigations/${inv.id}/cancel`, { method: "POST" });
+            let r: { result: string };
+            try {
+              r = await api<{ result: string }>(`/investigations/${inv.id}/cancel`, { method: "POST" });
+            } catch (e) {
+              if (e instanceof ApiError && e.status === 409) throw new Error("The investigation finished before the cancellation arrived, so nothing was cancelled. Its result is shown on this page.");
+              throw e;
+            }
             sessionStorage.setItem("drc.focusCancelled", inv.id);
             announce(r.result === "cancelled" ? "Investigation cancelled." : "Cancellation requested; it stops at its next step.");
             onChanged?.();
@@ -336,7 +353,7 @@ function DecisionPanel({ inv }: { inv: Investigation }) {
       <Group justify="space-between" mb="sm">
         <Group gap="sm">
           <ThemeIcon variant="light" color={approved ? "teal" : "red"} radius="xl" size="lg" aria-hidden="true">{approved ? <IconThumbUp size={18} /> : <IconThumbDown size={18} />}</ThemeIcon>
-          <h2 id={`dec-${inv.id}`} ref={ref} tabIndex={-1} className="focus-heading">Decision recorded</h2>
+          <h2 id={`dec-${inv.id}`} ref={ref} tabIndex={-1} className="focus-heading card-title-h">Decision recorded</h2>
         </Group>
         <Status entity="decision" value={r.decision} />
       </Group>
@@ -514,7 +531,7 @@ function EvidenceList({ evidence, active }: { evidence: Investigation["evidence"
                 <Accordion.Control>
                   <Group gap="xs" wrap="wrap">
                     <code>{e.id}</code>
-                    <StatusPill status="info" label={humanize(e.kind)} />
+                    <Badge variant="light" color="gray" radius="sm" tt="none" fw={600}>{evidenceKind(e.kind)}</Badge>
                     <Status entity="access" value={e.access} />
                   </Group>
                   {!open.includes(e.id) && first && <Text size="xs" c="dimmed" ff="monospace" mt={4} lineClamp={1}>{first}</Text>}
@@ -554,4 +571,8 @@ function EvidenceList({ evidence, active }: { evidence: Investigation["evidence"
 function secondsSince(iso: string) {
   const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000)); // re-rendered by the 2 s polling
   return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`;
+}
+
+function evidenceKind(kind: string) {
+  return humanize(kind).replace(/^Dbt\b/, "dbt");
 }

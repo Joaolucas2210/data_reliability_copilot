@@ -60,9 +60,9 @@ class ValidationStatus(StrEnum):
 
 TRANSITIONS: dict[str, dict[str, set[str]]] = {
     "incident": {
-        "open": {"investigating", "dismissed"},
+        "open": {"investigating", "dismissed", "resolved"},  # resolved: after a decided investigation
         "investigating": {"awaiting_review", "open"},  # back to open on failure/cancel
-        "awaiting_review": {"resolved", "dismissed", "investigating"},
+        "awaiting_review": {"resolved", "dismissed", "investigating", "open"},  # open: decided, not closed
         "resolved": {"open"},  # reopen (human decision, audited)
         "dismissed": {"open"},
     },

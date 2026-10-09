@@ -45,6 +45,9 @@ export function ValidationPage({ id }: { id: string }) {
         ]}
       />
       <PageTitle>{notFound ? "Validation run not found" : <>Sandbox validation <code>{v?.id ?? id}</code></>}</PageTitle>
+      {v?.incident_title && (
+        <Text c="dimmed" mt={-8} mb="md">Recovery for incident <a href={`#/incidents/${v.incident_id}`}>{v.incident_title}</a></Text>
+      )}
       <LoadView load={load} onRetry={reload} notFound={<NotFound what="validation run" id={id} back={{ href: "#/incidents", label: "Back to incidents" }} />}>
         {(run) => <ValidationView v={run} updatedAt={load.state === "ok" ? load.updatedAt : undefined} showTitle={false} />}
       </LoadView>
@@ -66,8 +69,7 @@ export function ValidationView({ v, updatedAt, showTitle = true }: { v: Validati
     <>
       {showTitle && <PageTitle>Sandbox validation <code>{v.id}</code></PageTitle>}
       <Group gap="xs" mb="sm" wrap="wrap">
-        <Status entity="validation" value={v.status} />
-        {passed && <EpistemicTag kind="verified" />}
+        {passed ? <EpistemicTag kind="verified" /> : <Status entity="validation" value={v.status} />}
         <Text size="sm" c="dimmed">
           {v.playbook && <>playbook <code>{v.playbook}</code> · </>}{v.status === "queued" ? <>requested {fmtTime(v.started_at)} · queued for {elapsed}</> : <>started {fmtTime(v.started_at)} · {active ? "running for" : "took"} {elapsed}</>}
           {active && updatedAt && <> · updates automatically · last checked {fmtClock(updatedAt)}</>}
@@ -109,7 +111,7 @@ export function ValidationView({ v, updatedAt, showTitle = true }: { v: Validati
             <Loader size="sm" type="dots" aria-hidden="true" />
             <Text size="sm">
               {v.status === "queued" ? "Queued — a worker will start it shortly." : `Stage ${Math.min(steps.length + 1, 6)} of 6: ${STEP_INFO[Object.keys(STEP_INFO)[steps.length]]?.[0] ?? "finishing"}.`} Usually about
-              a minute; you can leave and come back.
+              a minute; you can leave and come back. A running validation can't be stopped — it only touches its own isolated copy.
             </Text>
           </Group>
         )}
@@ -269,10 +271,12 @@ function IsolationDetail({ text, passed }: { text: string; passed: boolean }) {
   const refused = /permission denied|does not have CONNECT|password authentication failed|connection.*failed/i.test(text);
   if (!refused) return <Text size="sm" className="detail">{text}</Text>;
   return (
-    <details className="raw-json">
-      <summary>{passed ? "Connection refused — as expected" : "Connection refused"}</summary>
-      <Text size="sm" className="detail">{text}</Text>
-    </details>
+    <Accordion variant="subtle" chevronPosition="left" className="step-detail" styles={{ control: { paddingInline: 4 }, label: { paddingBlock: 6 }, content: { paddingInline: 4 } }}>
+      <Accordion.Item value="d">
+        <Accordion.Control>{passed ? "Connection refused — as expected" : "Connection refused"}</Accordion.Control>
+        <Accordion.Panel><Text size="sm" className="detail">{text}</Text></Accordion.Panel>
+      </Accordion.Item>
+    </Accordion>
   );
 }
 
@@ -287,5 +291,5 @@ const METRIC_LABEL: Record<string, string> = {
 function fmtNum(v: unknown) {
   if (v == null || v === "") return "—";
   const n = Number(v);
-  return Number.isNaN(n) ? fmtValue(v) : n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  return Number.isNaN(n) ? fmtValue(v) : n.toLocaleString("en-US", Number.isInteger(n) ? {} : { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }

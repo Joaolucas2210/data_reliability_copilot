@@ -160,7 +160,11 @@ def start_investigation(
 
 @app.get("/api/investigations/{inv_id}")
 def investigation(inv_id: str, r: Role = Depends(role)) -> dict:
-    inv = _one("select * from investigation where id=%s", inv_id)
+    inv = _one(
+        "select i.*, c.title as incident_title from investigation i join incident c on c.id=i.incident_id"
+        " where i.id=%s",
+        inv_id,
+    )
     ev = _all(
         "select e.* from evidence e join investigation_evidence ie on ie.evidence_id=e.id"
         " where ie.investigation_id=%s order by e.kind, e.id",
@@ -297,7 +301,8 @@ def start_validation(proposal_id: str, _: Role = Depends(need("investigator"))) 
 @app.get("/api/validation-runs/{vr_id}")
 def validation_run(vr_id: str, _: Role = Depends(role)) -> dict:
     return _one(
-        "select v.*, p.investigation_id, p.playbook, i.incident_id, i.status as investigation_status from validation_run v"
+        "select v.*, p.investigation_id, p.playbook, i.incident_id, i.status as investigation_status,"
+        " (select title from incident where id=i.incident_id) as incident_title from validation_run v"
         " join remediation_proposal p on p.id=v.proposal_id join investigation i on i.id=p.investigation_id"
         " where v.id=%s",
         vr_id,

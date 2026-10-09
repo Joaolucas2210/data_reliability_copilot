@@ -7,7 +7,7 @@ import { notifications } from "@mantine/notifications";
 import {
   IconAlertTriangle, IconArrowBackUp, IconBan, IconCheck, IconCircleDot, IconFlask, IconInbox, IconLock, IconMapPinOff, IconRefresh,
 } from "@tabler/icons-react";
-import { Component, createContext, useContext, useId, useRef, useState, type ErrorInfo, type ReactNode } from "react";
+import { Component, useEffect, createContext, useContext, useId, useRef, useState, type ErrorInfo, type ReactNode } from "react";
 import { errorMessage, type Load } from "../api";
 import { statusDef, type Entity } from "../status";
 import type { Status as LegacyStatus } from "../types";
@@ -78,7 +78,7 @@ export function Card({ title, children, actions, id }: { title: ReactNode; child
   return (
     <MCard component="section" aria-labelledby={hid} id={id} mb="lg" className="card">
       <Group justify="space-between" align="flex-start" mb="sm" gap="sm" className="card-head">
-        <Title order={2} size="h4" id={hid}>{title}</Title>
+        <Title order={2} size="h4" id={hid} tabIndex={-1}>{title}</Title>
         {actions}
       </Group>
       {children}
@@ -146,6 +146,11 @@ export function ActionButton({
   const reasonId = useId();
   const inFlight = useRef(false);
   const btnRef = useRef<HTMLButtonElement>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
 
   const run = async () => {
     if (inFlight.current) return; // guards double-clicks even before React re-renders
@@ -156,11 +161,15 @@ export function ActionButton({
       await onAction();
       if (successMessage) notifications.show({ color: "teal", icon: <IconCheck size={18} />, title: "Done", message: successMessage, withBorder: true });
     } catch (e) {
-      setError(errorMessage(e));
-      setTimeout(() => btnRef.current?.focus()); // keep keyboard users on the control that failed
+      // the page may have moved on (e.g. the state changed under an open confirmation): never fail silently
+      if (!mounted.current) notifications.show({ color: "red", icon: <IconAlertTriangle size={18} />, title: `${label} did not complete`, message: errorMessage(e), withBorder: true });
+      else {
+        setError(errorMessage(e));
+        setTimeout(() => btnRef.current?.focus(), 350); // after a confirmation modal returns focus: stay on the control that failed
+      }
     } finally {
       inFlight.current = false;
-      setBusy(false);
+      if (mounted.current) setBusy(false);
     }
   };
 
@@ -350,7 +359,7 @@ export function NotFound({ what, id, back }: { what: string; id?: string; back?:
     <Paper withBorder p="xl" radius="lg" className="state">
       <Stack align="center" gap={6}>
         <ThemeIcon variant="light" color="gray" size="xl" radius="xl" aria-hidden="true"><IconMapPinOff size={22} /></ThemeIcon>
-        <Text fw={600}>No {what} {id ? <>with id <code>{id}</code></> : "here"}</Text>
+        <Text fw={600} ta="center">{what === "page" ? <>There is no page at <code>{id}</code></> : <>No {what} {id ? <>with id <code>{id}</code></> : "here"}</>}</Text>
         <Text size="sm" c="dimmed">It may have been removed, or the link is wrong.</Text>
         <Group gap="sm" mt="xs">
           {back && <Button component="a" href={back.href} variant="light" size="xs">{back.label}</Button>}

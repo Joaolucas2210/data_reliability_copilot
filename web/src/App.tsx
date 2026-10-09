@@ -10,7 +10,7 @@ import {
 } from "@tabler/icons-react";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { announce, api, getRole, setRole, type Role } from "./api";
-import { ErrorBoundary, fmtTime, SkipLink } from "./components/ui";
+import { ErrorBoundary, fmtTime, NotFound, PageTitle, SkipLink } from "./components/ui";
 import { Evaluations } from "./pages/Evaluations";
 import { Gallery } from "./pages/Gallery";
 import { Health } from "./pages/Health";
@@ -23,7 +23,7 @@ import type { Incident } from "./types";
 // ponytail: hash routing with a regex table — add a router lib when routes need loaders/nesting.
 const ROUTES: [RegExp, (m: string[], q: URLSearchParams) => ReactNode, string][] = [
   [/^\/$/, () => <Health />, "Pipeline health"],
-  [/^\/incidents$/, (_m, q) => <IncidentList initialQuery={q.get("q") ?? ""} initialSort={q.get("sort") ?? "newest"} initialStatus={q.get("status") ?? ""} />, "Incidents"],
+  [/^\/incidents$/, (_m, q) => <IncidentList key={q.toString()} initialQuery={q.get("q") ?? ""} initialSort={q.get("sort") ?? "newest"} initialStatus={q.get("status") ?? ""} />, "Incidents"],
   [/^\/incidents\/([\w-]+)$/, (m) => <IncidentDetailPage id={m[1]} />, "Incident"],
   [/^\/investigations\/([\w-]+)$/, (m) => <InvestigationPage id={m[1]} />, "Investigation"],
   [/^\/validation-runs\/([\w-]+)$/, (m) => <ValidationPage id={m[1]} />, "Recovery validation"],
@@ -54,6 +54,7 @@ function useHashPath() {
 function ThemeMenu() {
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const computed = useComputedColorScheme("light");
+  const [menuOpen, setMenuOpen] = useState(false);
   const Icon = computed === "dark" ? IconMoon : IconSun;
   const options = [
     { value: "light", label: "Light", icon: IconSun },
@@ -61,9 +62,9 @@ function ThemeMenu() {
     { value: "auto", label: "System", icon: IconDeviceDesktop },
   ] as const;
   return (
-    <Menu position="bottom-end" withinPortal>
+    <Menu position="bottom-end" withinPortal opened={menuOpen} onChange={setMenuOpen}>
       <Menu.Target>
-        <Tooltip label="Theme">
+        <Tooltip label="Theme" disabled={menuOpen}>
           <ActionIcon variant="default" size="lg" aria-label={`Theme: ${options.find((o) => o.value === colorScheme)?.label}. Change theme`}>
             <Icon size={18} stroke={1.8} />
           </ActionIcon>
@@ -96,7 +97,7 @@ function useSpotlightActions(): SpotlightActionData[] {
   return [
     ...NAV.map((n) => ({ id: `nav-${n.href}`, label: n.label, description: "Go to page", onClick: go(n.href), leftSection: <n.icon size={18} />, group: "Pages" })),
     { id: "nav-ds", label: "Design system", description: "Components and states", onClick: go("#/design-system"), leftSection: <IconPalette size={18} />, group: "Pages" },
-    ...incidents.map((i) => ({ id: i.id, label: i.title, description: `${i.dataset_id ?? "no dataset"} · opened ${fmtTime(i.opened_at)} · ${i.status.replace("_", " ")}`, onClick: go(`#/incidents/${i.id}`), leftSection: <IconAlertTriangle size={18} />, group: "Unresolved incidents" })),
+    ...incidents.map((i) => ({ id: i.id, label: i.title, description: `${i.id} · ${i.dataset_id ?? "no dataset"} · opened ${fmtTime(i.opened_at)} · ${i.status.replace("_", " ")}`, onClick: go(`#/incidents/${i.id}`), leftSection: <IconAlertTriangle size={18} />, group: "Unresolved incidents" })),
     ...TERMS.map(([id, term]) => ({ id: `term-${id}`, label: term, description: "Glossary", onClick: go(`#/help?term=${id}`), leftSection: <IconBook2 size={18} />, group: "Glossary" })),
   ];
 }
@@ -116,10 +117,11 @@ export function App() {
   // collapsed drawer is off-screen: keep it out of the tab order; Escape closes it and returns focus to the burger
   useEffect(() => {
     if (!opened) return;
+    if (!desktop) requestAnimationFrame(() => document.querySelector<HTMLElement>("#primary-nav a")?.focus()); // drawer opened: start in the nav
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { close(); burgerRef.current?.focus(); } };
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
-  }, [opened, close]);
+  }, [opened, close, desktop]);
   const wide = useMediaQuery("(min-width: 36em)") ?? true; // room for the "Role" prefix and the longest role name
 
   const match = ROUTES.map(([re, render, title]) => ({ m: pathname.match(re), render, title })).find((r) => r.m);
@@ -162,8 +164,8 @@ export function App() {
               </UnstyledButton>
               <Select
                 aria-label="Role (development only)"
-                size="sm"
-                w={wide ? 184 : 128}
+                w={wide ? 184 : 136}
+                size={wide ? "sm" : "xs"}
                 value={role}
                 allowDeselect={false}
                 comboboxProps={{ withinPortal: true }}
@@ -216,11 +218,8 @@ export function App() {
                   match.render(match.m!, params)
                 ) : (
                   <>
-                    <h1 tabIndex={-1}>Page not found</h1>
-                    <div className="state">
-                      <p className="state-title">There is no page at <code>#{full}</code>.</p>
-                      <p className="row"><a href="#/">Pipeline health</a><a href="#/incidents">All incidents</a><a href="#/help">Help & glossary</a></p>
-                    </div>
+                    <PageTitle>Page not found</PageTitle>
+                    <NotFound what="page" id={`#${full}`} back={{ href: "#/incidents", label: "All incidents" }} />
                   </>
                 )}
               </div>

@@ -28,6 +28,13 @@ def test_transitions_reject_illegal_moves():
         check_transition("proposal", "proposed", "approved")  # must be validated first
 
 
+def test_decided_incident_can_be_closed():
+    # a recorded decision moves the incident back to open; it must then still be resolvable or dismissable
+    check_transition("incident", "awaiting_review", "open")
+    check_transition("incident", "open", "resolved")
+    check_transition("incident", "open", "dismissed")
+
+
 def test_citations_drop_unsupported_and_downgrade():
     ev = [_ev("ev_1", "batch B attempt=2 rows=14 status=loaded")]
     paraphrase = Fact(statement="retried", evidence_ids=["ev_1"], quote="batch was retried twice")

@@ -1,4 +1,4 @@
-import { Alert, Textarea } from "@mantine/core";
+import { Alert, Text, Textarea } from "@mantine/core";
 import { AccessDenied, ActionButton, Card, EmbeddedContext, EmptyState, EpistemicTag, ErrorState, EvidenceRef, Loading, ModeBanner, NotFound, PageTitle, Status, StatusPill, Tabs } from "../components/ui";
 import type { Entity } from "../status";
 import { fxEval, fxHealth, fxIncident, fxInvestigation, fxValidation } from "../fixtures";
@@ -116,6 +116,12 @@ export function Gallery() {
           <AccessDenied needed="approver" />
           <NotFound what="investigation" id="inv_example" />
         </div>
+      </Card>
+
+      <Card title="Restricted evidence (viewer)">
+        <Text size="sm" c="dimmed" mb="sm">What a viewer sees inside an evidence item whose content is restricted; metadata stays visible.</Text>
+        <Status entity="access" value="restricted" />
+        <div style={{ marginTop: "var(--sp-2)" }}><AccessDenied message="Content is restricted for your role." needed="investigator" /></div>
       </Card>
 
       <Card title="Tabs">
