@@ -11,6 +11,7 @@ Evaluators: **E1** usability & information architecture (Nielsen) · **E2** flow
 |---|---|---|---|---|---|---|---|---|---|
 | R1 | 523898b | 4.92125 | 4.935 | 5.32 | 6.0425 | 5.3047 | **4.92125** | 10 (B01–B12, see r1/backlog.md) | implemented + acceptance-validated, see R1 notes |
 | R2 | f99dd93 | 6.52125 | 7.4325 | 7.33125 | 7.87625 | 7.2903 | **6.52125** | 18 (C01–C18 + Mantine redesign, see r2/backlog.md) | no P0; P1: focus on load, raw codes → implemented in 599e27d (Mantine redesign, acceptance 51/51) |
+| R3 | ab6f108 | 8.35125 | 8.2825 | 8.16375 | 8.18875 | 8.2466 | **8.16375** | 15 (D01–D15) | P1: hidden nav focusable, error contrast → implementing |
 
 ## R1 notes
 
