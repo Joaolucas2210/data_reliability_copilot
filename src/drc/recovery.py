@@ -219,18 +219,28 @@ def metrics(dsn: str) -> dict:
     }  # type: ignore[index]
 
 
-def validate(proposal_id: str, keep_sandbox: bool = False) -> str:
+def create_queued_run(conn, proposal_id: str, actor: str) -> str:
+    """Create the validation run row up front (status queued) so callers get its id immediately."""
+    vr_id = new_id("val")
+    conn.execute(
+        "insert into validation_run(id,proposal_id,status,sandbox_db,started_at) values (%s,%s,'queued',%s,now())",
+        (vr_id, proposal_id, f"sandbox_{vr_id[4:]}"),
+    )
+    store.audit(
+        conn, actor, "validation.queued", "validation", vr_id, None, "queued", proposal_id=proposal_id
+    )
+    return vr_id
+
+
+def validate(proposal_id: str, keep_sandbox: bool = False, validation_run_id: str | None = None) -> str:
     with store.connect() as conn, conn.transaction():
         prop = conn.execute("select * from remediation_proposal where id=%s", (proposal_id,)).fetchone()
         assert prop, proposal_id
         store.transition(conn, "proposal", proposal_id, "validating", "worker")
-        vr_id = new_id("val")
+        vr_id = validation_run_id or create_queued_run(conn, proposal_id, "worker")
         sandbox_db = f"sandbox_{vr_id[4:]}"
-        conn.execute(
-            "insert into validation_run(id,proposal_id,status,sandbox_db,started_at) values"
-            " (%s,%s,'running',%s,now())",
-            (vr_id, proposal_id, sandbox_db),
-        )
+        conn.execute("update validation_run set started_at=now() where id=%s", (vr_id,))
+        store.transition(conn, "validation", vr_id, "running", "worker")
         store.audit(
             conn,
             "worker",

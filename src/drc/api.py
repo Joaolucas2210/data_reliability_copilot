@@ -7,7 +7,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from drc import agent, obs, store, worker
+from drc import agent, obs, recovery, store, worker
 
 AUTH_MODE = os.environ.get("DRC_AUTH_MODE", "dev")
 if AUTH_MODE != "dev":
@@ -173,6 +173,28 @@ def investigation(inv_id: str, r: Role = Depends(role)) -> dict:
         inv_id,
     )
     inv.pop("idempotency_key", None)
+    # closure: who decided what (review) and the latest status change (e.g. who cancelled), from the audit trail
+    review = _all(
+        "select at, actor, detail from audit_event where entity_type='investigation' and entity_id=%s"
+        " and action='investigation.status' and to_status='completed' order by at desc limit 1",
+        inv_id,
+    )
+    inv["review"] = (
+        {
+            "decision": review[0]["detail"].get("decision"),
+            "note": review[0]["detail"].get("note") or "",
+            "reviewer": review[0]["actor"],
+            "at": review[0]["at"],
+        }
+        if review
+        else None
+    )
+    last = _all(
+        "select at, actor, from_status, to_status from audit_event where entity_type='investigation'"
+        " and entity_id=%s and to_status is not null order by at desc limit 1",
+        inv_id,
+    )
+    inv["last_status_change"] = last[0] if last else None
     return inv
 
 
@@ -207,14 +229,33 @@ def cancel(inv_id: str, r: Role = Depends(need("investigator"))) -> dict:
 def start_validation(proposal_id: str, _: Role = Depends(need("investigator"))) -> dict:
     p = _one("select status from remediation_proposal where id=%s", proposal_id)
     if p["status"] not in ("proposed", "validated", "validation_failed"):
-        raise HTTPException(409, f"proposal is {p['status']}")
-    job = worker.enqueue("validate", {"proposal_id": proposal_id})
-    return {"job_id": job}
+        raise HTTPException(
+            409, f"This proposal is {p['status'].replace('_', ' ')}; it cannot be validated now."
+        )
+    with store.connect() as conn, conn.transaction():
+        active = conn.execute(
+            "select id from validation_run where proposal_id=%s and status in ('queued','running') for update",
+            (proposal_id,),
+        ).fetchone()
+        if active:
+            raise HTTPException(
+                409, f"A validation of this proposal is already in progress ({active['id']})."
+            )
+        vr_id = recovery.create_queued_run(conn, proposal_id, "api")
+    job = worker.enqueue(
+        "validate", {"proposal_id": proposal_id, "validation_run_id": vr_id}, f"validate:{vr_id}"
+    )
+    return {"validation_run_id": vr_id, "job_id": job}
 
 
 @app.get("/api/validation-runs/{vr_id}")
 def validation_run(vr_id: str, _: Role = Depends(role)) -> dict:
-    return _one("select * from validation_run where id=%s", vr_id)
+    return _one(
+        "select v.*, p.investigation_id, i.incident_id from validation_run v"
+        " join remediation_proposal p on p.id=v.proposal_id join investigation i on i.id=p.investigation_id"
+        " where v.id=%s",
+        vr_id,
+    )
 
 
 @app.get("/api/evaluations/latest")

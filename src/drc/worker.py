@@ -54,7 +54,7 @@ def handle(job: dict) -> None:
     if job["kind"] == "investigate":
         agent.run(p["investigation_id"])
     elif job["kind"] == "validate":
-        recovery.validate(p["proposal_id"])
+        recovery.validate(p["proposal_id"], validation_run_id=p.get("validation_run_id"))
     else:
         raise ValueError(f"unknown job kind {job['kind']}")
 
