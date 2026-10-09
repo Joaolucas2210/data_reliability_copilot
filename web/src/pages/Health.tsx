@@ -1,15 +1,13 @@
-import { useState } from "react";
 import { useApi } from "../api";
-import { Card, EmptyState, fmtTime, LoadView, StatusPill } from "../components/ui";
+import { Card, EmptyState, fmtTime, LoadView, PageTitle, Status } from "../components/ui";
 import type { PipelineHealth } from "../types";
 
 export function Health() {
-  const [k, setK] = useState(0);
-  const load = useApi<PipelineHealth[]>("/pipelines/health", k);
+  const [load, reload] = useApi<PipelineHealth[]>("/pipelines/health");
   return (
     <>
-      <h1>Pipeline health</h1>
-      <LoadView load={load} onRetry={() => setK(k + 1)}>
+      <PageTitle>Pipeline health</PageTitle>
+      <LoadView load={load} onRetry={reload}>
         {(rows) =>
           rows.length ? <HealthCards rows={rows} /> : <EmptyState title="No pipeline runs yet" hint={<>Run <code>make demo</code> to execute the first pipeline.</>} />
         }
@@ -24,11 +22,11 @@ export function HealthCards({ rows }: { rows: PipelineHealth[] }) {
       {rows.map((p) => {
         const worst = p.checks.fail || p.checks.error ? "fail" : p.checks.warn ? "warn" : "pass";
         return (
-          <Card key={p.pipeline} title={p.pipeline} actions={<StatusPill status={worst} label={`checks ${worst}`} />}>
+          <Card key={p.pipeline} title={p.pipeline} actions={<Status entity="check" value={worst} prefix="Checks" />}>
             <dl className="kv">
               <dt>Last run</dt>
               <dd>
-                <StatusPill status={p.last_run.status === "succeeded" ? "pass" : p.last_run.status === "failed" ? "fail" : "unknown"} label={p.last_run.status} />
+                <Status entity="run" value={p.last_run.status} />
               </dd>
               <dt>Finished</dt>
               <dd>{fmtTime(p.last_run.finished_at)}</dd>
@@ -37,7 +35,7 @@ export function HealthCards({ rows }: { rows: PipelineHealth[] }) {
                 {p.checks.pass} pass · {p.checks.warn} warn · {p.checks.fail} fail · {p.checks.error} error
               </dd>
               <dt>Freshness</dt>
-              <dd><StatusPill status={p.freshness} /></dd>
+              <dd><Status entity="freshness" value={p.freshness} /></dd>
               <dt>Open incidents</dt>
               <dd>{p.open_incidents ? <a href="#/incidents">{p.open_incidents} open</a> : "none"}</dd>
               <dt>dbt</dt>

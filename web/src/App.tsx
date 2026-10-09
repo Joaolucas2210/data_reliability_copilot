@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { getRole, setRole, type Role } from "./api";
-import { SkipLink } from "./components/ui";
+import { ErrorBoundary, SkipLink } from "./components/ui";
 import { Evaluations } from "./pages/Evaluations";
 import { Gallery } from "./pages/Gallery";
 import { Health } from "./pages/Health";
@@ -44,16 +44,23 @@ export function App() {
   const [role, setRoleState] = useState<Role>(getRole);
   const [theme, setTheme] = useState<Theme>(() => (document.documentElement.dataset.theme as Theme) || "system");
   const mainRef = useRef<HTMLElement>(null);
-  const firstRender = useRef(true);
+  const prevPath = useRef(path);
 
   const match = ROUTES.map(([re, render, title]) => ({ m: path.match(re), render, title })).find((r) => r.m);
 
-  useEffect(() => {
-    document.title = `${match?.title ?? "Not found"} · Data Reliability Copilot`;
-    // move focus to content on SPA navigation, but not on first load (keeps the skip link first in tab order)
-    if (firstRender.current) firstRender.current = false;
-    else mainRef.current?.focus();
+  // generic title first (layout effect); pages refine it with the entity name in their own effects
+  useLayoutEffect(() => {
+    document.title = `${match?.title ?? "Page not found"} · Data Reliability Copilot`;
   }, [path]); // title depends only on path
+
+  useEffect(() => {
+    // focus the page heading on SPA navigation only — comparing paths (not a first-render flag) keeps this
+    // correct under React StrictMode's double effects, so the skip link stays the first Tab stop on load
+    if (prevPath.current === path) return;
+    prevPath.current = path;
+    const h1 = mainRef.current?.querySelector<HTMLElement>("h1");
+    (h1 ?? mainRef.current)?.focus();
+  }, [path]);
 
   useEffect(() => {
     if (theme === "system") delete document.documentElement.dataset.theme;
@@ -103,9 +110,22 @@ export function App() {
           ))}
         </ul>
       </nav>
-      <main id="main" ref={mainRef} tabIndex={-1}>
-        {match ? match.render(match.m!) : <h1>Page not found</h1>}
+      <main id="main" ref={mainRef} tabIndex={-1} aria-label="Content">
+        <ErrorBoundary resetKey={path}>
+          {match ? (
+            match.render(match.m!)
+          ) : (
+            <>
+              <h1 tabIndex={-1}>Page not found</h1>
+              <div className="state">
+                <p className="state-title">There is no page at <code>#{path}</code>.</p>
+                <p className="row"><a href="#/">Pipeline health</a><a href="#/incidents">All incidents</a></p>
+              </div>
+            </>
+          )}
+        </ErrorBoundary>
       </main>
+      <div id="announcer" className="sr-only" aria-live="polite" aria-atomic="true" />
     </div>
   );
 }

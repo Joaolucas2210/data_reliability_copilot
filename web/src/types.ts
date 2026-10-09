@@ -156,10 +156,20 @@ export interface Proposal {
   latest_validation_run_id: string | null;
 }
 
+export interface ReviewRecord {
+  decision: "approve" | "reject" | null;
+  note: string;
+  reviewer: string;
+  at: string;
+}
+
 export interface Investigation {
   id: string;
   incident_id: string;
   status: string;
+  review?: ReviewRecord | null;
+  last_status_change?: { at: string; actor: string; from_status: string | null; to_status: string } | null;
+  created_at?: string;
   outcome: string | null;
   mode: "fake" | "live";
   llm_provider: string;
@@ -184,7 +194,10 @@ export interface ValidationStep {
 export interface ValidationRun {
   id: string;
   proposal_id: string;
+  investigation_id?: string;
+  incident_id?: string;
   status: string;
+  error?: string | null;
   sandbox_db: string;
   steps: ValidationStep[];
   isolation_checks: { name: string; passed: boolean; detail: unknown }[];

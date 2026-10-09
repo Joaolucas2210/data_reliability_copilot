@@ -1,44 +1,69 @@
-import { Fragment, useState } from "react";
-import { api, ApiError, useApi, getRole } from "../api";
-import { AccessDenied, Card, DataTable, EmptyState, EpistemicTag, EvidenceRef, fmtCost, fmtTime, LoadView, ModeBanner, StatusPill, Tabs } from "../components/ui";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
+import { announce, api, canAct, getRole, useApi } from "../api";
+import {
+  AccessDenied, ActionButton, Breadcrumbs, Card, DataTable, EmptyState, EpistemicTag, EvidenceRef, fmtClock, fmtCost,
+  fmtTime, LoadView, ModeBanner, NotFound, PageTitle, Status, StatusPill, Tabs,
+} from "../components/ui";
+import { ACTIVE_INVESTIGATION, humanize, statusLabel } from "../status";
 import type { Investigation } from "../types";
 
-const OUTCOME_STATUS: Record<string, string> = { diagnosed: "warn", abstained: "unknown", no_fault_found: "pass" };
-
 export function InvestigationPage({ id }: { id: string }) {
-  const [k, setK] = useState(0);
-  const load = useApi<Investigation>(`/investigations/${id}`, k);
+  const [load, reload] = useApi<Investigation>(`/investigations/${id}`, {
+    pollWhile: (inv) => ACTIVE_INVESTIGATION.has(inv.status) || inv.proposals.some((p) => p.status === "validating"),
+  });
+  const prevStatus = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (load.state !== "ok") return;
+    const s = load.data.status;
+    if (prevStatus.current && prevStatus.current !== s) announce(`Investigation is now ${statusLabel("investigation", s).toLowerCase()}.`);
+    prevStatus.current = s;
+    document.title = `Investigation ${load.data.id} · Data Reliability Copilot`;
+  }, [load]);
+
+  const notFound = load.state === "error" && load.status === 404;
+  useEffect(() => {
+    if (notFound) document.title = `Investigation not found · Data Reliability Copilot`;
+  }, [notFound]);
   return (
-    <LoadView load={load} onRetry={() => setK(k + 1)}>
-      {(inv) => <InvestigationView inv={inv} onChanged={() => setK(k + 1)} />}
-    </LoadView>
+    <>
+      <Breadcrumbs
+        items={[
+          { href: "#/incidents", label: "Incidents" },
+          ...(load.state === "ok" ? [{ href: `#/incidents/${load.data.incident_id}`, label: "Incident" }] : []),
+          { label: "Investigation" },
+        ]}
+      />
+      {load.state !== "ok" && <PageTitle>{notFound ? "Investigation not found" : "Investigation"}</PageTitle>}
+      <LoadView load={load} onRetry={reload} notFound={<NotFound what="investigation" id={id} back={{ href: "#/incidents", label: "Back to incidents" }} />}>
+        {(inv) => <InvestigationView inv={inv} onChanged={reload} updatedAt={load.state === "ok" ? load.updatedAt : undefined} />}
+      </LoadView>
+    </>
   );
 }
 
-export function InvestigationView({ inv, onChanged }: { inv: Investigation; onChanged?: () => void }) {
+export function InvestigationView({ inv, onChanged, updatedAt }: { inv: Investigation; onChanged?: () => void; updatedAt?: Date }) {
   const d = inv.diagnosis;
   const known = new Set(inv.evidence.map((e) => e.id));
   const unsupported = new Set(inv.citation_report?.unsupported_facts ?? []);
   const refs = (ids: string[]) => ids.map((id) => <EvidenceRef key={id} id={id} exists={known.has(id)} />);
+  const active = ACTIVE_INVESTIGATION.has(inv.status);
 
   return (
     <>
-      <p><a href={`#/incidents/${inv.incident_id}`}>← Incident</a></p>
-      <h1>Investigation <code>{inv.id}</code></h1>
+      <PageTitle>Investigation <code>{inv.id}</code></PageTitle>
       <ModeBanner mode={inv.mode} costStatus={inv.usage.cost_status} />
       <div className="row" style={{ marginBottom: "var(--sp-4)" }}>
-        <StatusPill status={inv.status === "completed" ? "pass" : inv.status === "failed" ? "fail" : "info"} label={inv.status.replace("_", " ")} />
-        {inv.outcome && <StatusPill status={OUTCOME_STATUS[inv.outcome] ?? "unknown"} label={`outcome: ${inv.outcome.replaceAll("_", " ")}`} />}
+        <Status entity="investigation" value={inv.status} />
+        {inv.outcome && <Status entity="outcome" value={inv.outcome} />}
         <span className="muted">
           {inv.llm_provider}/{inv.llm_model ?? "—"} · prompt {inv.prompt_version}
+          {active && updatedAt && <> · updates automatically · last checked {fmtClock(updatedAt)}</>}
         </span>
-        {(inv.status === "queued" || inv.status === "running") && getRole() !== "viewer" && (
-          <CancelButton id={inv.id} onDone={onChanged} />
-        )}
       </div>
 
       {!d ? (
-        <EmptyState title={inv.status === "failed" ? "Investigation failed before producing a diagnosis" : "Diagnosis not available yet"} />
+        <NoDiagnosis inv={inv} onChanged={onChanged} />
       ) : (
         <>
           <Card title="Summary">
@@ -77,7 +102,7 @@ export function InvestigationView({ inv, onChanged }: { inv: Investigation; onCh
                     <div className="claim hypothesis" key={h.id}>
                       <div className="row">
                         <EpistemicTag kind="hypothesis" />
-                        <StatusPill status={h.status === "supported" ? "pass" : h.status === "refuted" ? "fail" : "unknown"} label={h.status} />
+                        <Status entity="hypothesis" value={h.status} />
                         {h.cause_category && <code>{h.cause_category}</code>}
                       </div>
                       <p>{h.statement}</p>
@@ -121,10 +146,11 @@ export function InvestigationView({ inv, onChanged }: { inv: Investigation; onCh
                       <p className="muted">No recovery proposed (not supported by the evidence).</p>
                     )}
                     {inv.proposals.map((p) => (
-                      <div key={p.id} className="row">
+                      <div key={p.id} className="row proposal-row">
                         {p.status === "validated" && <EpistemicTag kind="verified" />}
-                        <StatusPill status={p.status === "validated" ? "pass" : p.status === "validation_failed" ? "fail" : "info"} label={`proposal ${p.status}`} />
-                        {p.latest_validation_run_id ? <a href={`#/validation-runs/${p.latest_validation_run_id}`}>Sandbox validation</a> : <ValidateButton proposalId={p.id} />}
+                        <Status entity="proposal" value={p.status} prefix="Proposal" />
+                        {p.latest_validation_run_id && <a href={`#/validation-runs/${p.latest_validation_run_id}`}>View sandbox validation</a>}
+                        {p.status !== "validating" && p.status !== "approved" && p.status !== "rejected" && <ValidateButton proposalId={p.id} again={!!p.latest_validation_run_id} />}
                       </div>
                     ))}
                   </>
@@ -132,7 +158,7 @@ export function InvestigationView({ inv, onChanged }: { inv: Investigation; onCh
               },
             ]}
           />
-          <ReviewCard inv={inv} onChanged={onChanged} />
+          {inv.review ? <DecisionPanel inv={inv} /> : <ReviewCard inv={inv} onChanged={onChanged} />}
         </>
       )}
 
@@ -153,7 +179,7 @@ export function InvestigationView({ inv, onChanged }: { inv: Investigation; onCh
             )}
           </dl>
         ) : (
-          <EmptyState title="Not checked yet" />
+          <EmptyState title={active ? "Runs after the diagnosis is produced" : "Not checked"} />
         )}
         <p className="muted">A reference that exists does not prove it supports the claim; quote matching is a deterministic lower bar, not semantic verification.</p>
       </Card>
@@ -163,7 +189,7 @@ export function InvestigationView({ inv, onChanged }: { inv: Investigation; onCh
           inv.evidence.map((e) => (
             <article className="evidence" key={e.id} id={`ev-${e.id}`} tabIndex={-1} aria-label={`Evidence ${e.id}`}>
               <div className="row">
-                <code>{e.id}</code> <StatusPill status="info" label={e.kind.replaceAll("_", " ")} /> <StatusPill status={e.access === "restricted" ? "warn" : "unknown"} label={e.access} />
+                <code>{e.id}</code> <StatusPill status="info" label={humanize(e.kind)} /> <Status entity="access" value={e.access} />
               </div>
               <dl className="kv">
                 <dt>Source</dt>
@@ -180,12 +206,12 @@ export function InvestigationView({ inv, onChanged }: { inv: Investigation; onCh
               {e.redacted || e.content == null ? (
                 <AccessDenied message="Content is restricted for your role." needed="investigator" />
               ) : (
-                <pre aria-label="Evidence content (untrusted data)">{e.content}</pre>
+                <pre tabIndex={0} aria-label={`Evidence ${e.id} content (untrusted data)`}>{e.content}</pre>
               )}
             </article>
           ))
         ) : (
-          <EmptyState title="No evidence collected" />
+          <EmptyState title={active ? "Evidence appears here as tools return results" : "No evidence collected"} />
         )}
       </Card>
 
@@ -219,9 +245,10 @@ export function InvestigationView({ inv, onChanged }: { inv: Investigation; onCh
             caption="Bounded tool calls made during the investigation"
             rows={inv.tool_calls.map((t, i) => ({ ...t, i }))}
             rowKey={(t) => String(t.i)}
+            empty={<EmptyState title={active ? "No tool calls yet" : "No tool calls"} />}
             columns={[
               { header: "Tool", render: (t) => <code>{t.tool}</code> },
-              { header: "Status", render: (t) => <StatusPill status={t.status === "ok" ? "pass" : "fail"} label={t.status} /> },
+              { header: "Status", render: (t) => <Status entity="tool" value={t.status} /> },
               { header: "Rows", render: (t) => t.rows_returned ?? "—", numeric: true },
               { header: "ms", render: (t) => t.duration_ms ?? "—", numeric: true },
             ]}
@@ -232,72 +259,161 @@ export function InvestigationView({ inv, onChanged }: { inv: Investigation; onCh
   );
 }
 
-function ValidateButton({ proposalId }: { proposalId: string }) {
-  const [msg, setMsg] = useState<string | null>(null);
-  const run = async () => {
-    try {
-      const r = await api<{ validation_run_id: string }>(`/proposals/${proposalId}/validations`, { method: "POST" });
-      location.hash = `#/validation-runs/${r.validation_run_id}`;
-    } catch (e) {
-      setMsg(e instanceof ApiError && e.status === 403 ? "Needs investigator role." : String(e));
-    }
-  };
+function NoDiagnosis({ inv, onChanged }: { inv: Investigation; onChanged?: () => void }) {
+  const last = inv.last_status_change;
+  if (inv.status === "queued" || inv.status === "running")
+    return (
+      <Card title={inv.status === "queued" ? "Waiting for a worker" : "Investigating"}>
+        <div className="state" role="status">
+          <span className="spinner" aria-hidden="true" />{" "}
+          {inv.status === "queued"
+            ? "Queued — a worker will pick this up shortly."
+            : "Running — collecting evidence and testing hypotheses."}{" "}
+          This page updates on its own; you can leave and come back.
+        </div>
+        <ActionButton
+          label="Cancel investigation"
+          busyLabel="Cancelling…"
+          variant="danger"
+          disabledReason={canAct("investigator") ? undefined : "Requires the investigator role"}
+          confirm={{ prompt: "Cancel this investigation? It stops at its next step and cannot be resumed.", confirmLabel: "Yes, cancel it" }}
+          onAction={async () => {
+            const r = await api<{ result: string }>(`/investigations/${inv.id}/cancel`, { method: "POST" });
+            announce(r.result === "cancelled" ? "Investigation cancelled." : "Cancellation requested; it stops at its next step.");
+            onChanged?.();
+          }}
+        />
+      </Card>
+    );
+  if (inv.status === "cancelled")
+    return (
+      <Card title="Investigation cancelled">
+        <p>
+          Cancelled{last ? <> by <strong>{last.actor}</strong> at {fmtTime(last.at)}</> : null}. No diagnosis was produced.
+        </p>
+        <p><a href={`#/incidents/${inv.incident_id}`}>Back to the incident</a> to start a new investigation.</p>
+      </Card>
+    );
   return (
-    <>
-      <button type="button" className="btn" onClick={run}>Validate in sandbox</button>
-      {msg && <span role="alert" className="muted">{msg}</span>}
-    </>
+    <Card title="Investigation failed">
+      <p>The investigation stopped before producing a diagnosis{last ? <> ({fmtTime(last.at)})</> : null}.</p>
+      <p><a href={`#/incidents/${inv.incident_id}`}>Back to the incident</a> to start a new investigation.</p>
+    </Card>
+  );
+}
+
+function ValidateButton({ proposalId, again }: { proposalId: string; again: boolean }) {
+  return (
+    <ActionButton
+      label={again ? "Validate again in sandbox" : "Validate in sandbox"}
+      busyLabel="Starting validation…"
+      disabledReason={canAct("investigator") ? undefined : "Requires the investigator role"}
+      onAction={async () => {
+        const r = await api<{ validation_run_id: string }>(`/proposals/${proposalId}/validations`, { method: "POST" });
+        announce("Sandbox validation started. Opening it.");
+        location.hash = `#/validation-runs/${r.validation_run_id}`;
+      }}
+    />
+  );
+}
+
+function DecisionPanel({ inv }: { inv: Investigation }) {
+  const r = inv.review!;
+  const ref = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    // move focus here right after a decision is recorded (flag set by ReviewCard)
+    if (sessionStorage.getItem("drc.focusDecision") === inv.id) {
+      sessionStorage.removeItem("drc.focusDecision");
+      ref.current?.focus();
+    }
+  }, [inv.id]);
+  return (
+    <section className="card decision" aria-labelledby={`dec-${inv.id}`}>
+      <header className="card-head">
+        <h2 id={`dec-${inv.id}`} ref={ref} tabIndex={-1}>Decision recorded</h2>
+        <Status entity="decision" value={r.decision} />
+      </header>
+      <dl className="kv">
+        <dt>Decision</dt>
+        <dd>{r.decision === "approve" ? "Diagnosis approved" : "Diagnosis rejected"}</dd>
+        <dt>Reviewer</dt>
+        <dd>{r.reviewer}</dd>
+        <dt>When</dt>
+        <dd>{fmtTime(r.at)}</dd>
+        <dt>Note</dt>
+        <dd>{r.note ? `“${r.note}”` : <span className="muted">No note</span>}</dd>
+      </dl>
+      <p className="muted">
+        Recording a decision does not change production. <a href={`#/incidents/${inv.incident_id}`}>Go to the incident</a> to see its status.
+      </p>
+    </section>
   );
 }
 
 function ReviewCard({ inv, onChanged }: { inv: Investigation; onChanged?: () => void }) {
   const [note, setNote] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
+  const [resolve, setResolve] = useState(true);
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const noteRef = useRef<HTMLTextAreaElement>(null);
+  const errId = useId();
   if (inv.status !== "awaiting_review") return null;
-  const decide = async (decision: "approve" | "reject") => {
-    setMsg(null);
-    try {
-      await api(`/investigations/${inv.id}/review`, { method: "POST", body: JSON.stringify({ decision, note }) });
-      onChanged?.();
-    } catch (e) {
-      setMsg(e instanceof ApiError && e.status === 403 ? "Only the approver role can record a review decision." : String(e));
-    }
+
+  const decide = (decision: "approve" | "reject") => async () => {
+    await api(`/investigations/${inv.id}/review`, {
+      method: "POST",
+      body: JSON.stringify({ decision, note, close_incident: decision === "approve" && resolve ? "resolved" : null }),
+    });
+    sessionStorage.setItem("drc.focusDecision", inv.id);
+    announce(`Decision recorded: diagnosis ${decision === "approve" ? "approved" : "rejected"}.`);
+    onChanged?.();
   };
+  const noteGiven = () => {
+    if (note.trim()) return true;
+    setNoteError("Write a note explaining why you reject the diagnosis.");
+    noteRef.current?.focus();
+    return false;
+  };
+
   return (
     <Card title="Human review">
-      <p className="muted">Approval records the decision. It does not apply anything to production in this phase.</p>
+      <p className="muted">Your decision is recorded with your name and note. It does not apply anything to production in this phase.</p>
       {getRole() !== "approver" ? (
         <AccessDenied message="Only approvers can record a review decision (the API enforces this too)." needed="approver" />
       ) : (
-      <>
-      <label htmlFor="review-note">Note</label>
-      <textarea id="review-note" value={note} onChange={(e) => setNote(e.target.value)} rows={2} style={{ width: "100%" }} />
-      <div className="row" style={{ marginTop: "var(--sp-2)" }}>
-        <button type="button" className="btn btn-primary" onClick={() => decide("approve")}>Approve diagnosis</button>
-        <button type="button" className="btn" onClick={() => decide("reject")}>Reject</button>
-      </div>
-      {msg && <p role="alert" className="banner tone-fail">{msg}</p>}
-      </>
+        <>
+          <label htmlFor={`note-${inv.id}`}>Review note <span className="muted">(required to reject)</span></label>
+          <textarea
+            id={`note-${inv.id}`}
+            ref={noteRef}
+            value={note}
+            onChange={(e) => { setNote(e.target.value); if (e.target.value.trim()) setNoteError(null); }}
+            rows={3}
+            aria-invalid={!!noteError}
+            aria-describedby={noteError ? errId : undefined}
+          />
+          {noteError && <p id={errId} className="field-error" role="alert"><span aria-hidden="true">✕ </span>{noteError}</p>}
+          <label className="check">
+            <input type="checkbox" checked={resolve} onChange={(e) => setResolve(e.target.checked)} /> When approving, also mark the incident as resolved
+          </label>
+          <div className="row review-actions">
+            <ActionButton
+              label="Approve diagnosis"
+              busyLabel="Recording…"
+              variant="primary"
+              confirm={{ prompt: <>Approve this diagnosis{resolve ? " and resolve the incident" : ""}? The decision is recorded and cannot be undone.</>, confirmLabel: "Yes, approve" }}
+              onAction={decide("approve")}
+            />
+            <ActionButton
+              label="Reject diagnosis"
+              busyLabel="Recording…"
+              variant="danger"
+              confirm={{ prompt: "Reject this diagnosis? The incident stays unresolved so another investigation can be started.", confirmLabel: "Yes, reject" }}
+              precheck={noteGiven}
+              onAction={decide("reject")}
+            />
+          </div>
+        </>
       )}
     </Card>
-  );
-}
-
-function CancelButton({ id, onDone }: { id: string; onDone?: () => void }) {
-  const [msg, setMsg] = useState<string | null>(null);
-  const cancel = async () => {
-    try {
-      const r = await api<{ result: string }>(`/investigations/${id}/cancel`, { method: "POST" });
-      setMsg(r.result === "cancelled" ? "Cancelled." : "Cancellation requested; it stops at the next step.");
-      onDone?.();
-    } catch (e) {
-      setMsg(e instanceof ApiError ? e.message : String(e));
-    }
-  };
-  return (
-    <>
-      <button type="button" className="btn" onClick={cancel}>Cancel investigation</button>
-      {msg && <span role="status" className="muted">{msg}</span>}
-    </>
   );
 }

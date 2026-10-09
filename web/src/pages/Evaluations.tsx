@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { useApi } from "../api";
-import { Card, DataTable, EmptyState, fmtTime, LoadView, ModeBanner, StatusPill } from "../components/ui";
+import { Card, DataTable, EmptyState, fmtTime, LoadView, ModeBanner, PageTitle, StatusPill } from "../components/ui";
+import { statusLabel } from "../status";
 import type { EvalRun } from "../types";
 
 const SYSTEM_LABEL: Record<string, string> = {
@@ -10,12 +10,11 @@ const SYSTEM_LABEL: Record<string, string> = {
 };
 
 export function Evaluations() {
-  const [k, setK] = useState(0);
-  const load = useApi<{ runs: EvalRun[] }>("/evaluations/latest", k);
+  const [load, reload] = useApi<{ runs: EvalRun[] }>("/evaluations/latest");
   return (
     <>
-      <h1>Evaluation results</h1>
-      <LoadView load={load} onRetry={() => setK(k + 1)}>
+      <PageTitle>Evaluation results</PageTitle>
+      <LoadView load={load} onRetry={reload}>
         {(d) => (d.runs.length ? <EvalView runs={d.runs} /> : <EmptyState title="No evaluation runs" hint={<>Run <code>make eval</code>.</>} />)}
       </LoadView>
     </>
@@ -49,8 +48,8 @@ export function EvalView({ runs }: { runs: EvalRun[] }) {
             rowKey={(s) => s.scenario_id}
             columns={[
               { header: "Scenario", render: (s) => <code>{s.scenario_id}</code> },
-              { header: "Expected", render: (s) => s.expected },
-              { header: "Got", render: (s) => s.got },
+              { header: "Expected", render: (s) => statusLabel("outcome", s.expected) },
+              { header: "Got", render: (s) => statusLabel("outcome", s.got) },
               { header: "Result", render: (s) => <StatusPill status={s.correct ? "pass" : "fail"} label={s.correct ? "correct" : "wrong"} /> },
               { header: "Unsupported claims", render: (s) => s.unsupported_claims ?? "—", numeric: true },
             ]}

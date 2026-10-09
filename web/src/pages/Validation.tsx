@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { useApi } from "../api";
-import { Card, DataTable, EpistemicTag, fmtTime, fmtValue, LoadView, StatusPill } from "../components/ui";
+import { useEffect, useRef } from "react";
+import { announce, useApi } from "../api";
+import { Breadcrumbs, Card, DataTable, EpistemicTag, fmtClock, fmtTime, fmtValue, LoadView, NotFound, PageTitle, Status, StatusPill } from "../components/ui";
+import { statusLabel } from "../status";
 import type { ValidationRun } from "../types";
 
 // What each step does and does NOT prove — shown next to its result.
@@ -14,33 +15,81 @@ const STEP_INFO: Record<string, [string, string]> = {
 };
 
 export function ValidationPage({ id }: { id: string }) {
-  const [k, setK] = useState(0);
-  const load = useApi<ValidationRun>(`/validation-runs/${id}`, k);
+  const [load, reload] = useApi<ValidationRun>(`/validation-runs/${id}`, {
+    pollWhile: (v) => v.status === "queued" || v.status === "running",
+  });
+  const prevStatus = useRef<string | null>(null);
+  useEffect(() => {
+    if (load.state !== "ok") return;
+    const st = load.data.status;
+    if (prevStatus.current && prevStatus.current !== st) announce(`Sandbox validation ${statusLabel("validation", st).toLowerCase()}.`);
+    prevStatus.current = st;
+    document.title = `Validation ${load.data.id} · Data Reliability Copilot`;
+  }, [load]);
+  const notFound = load.state === "error" && load.status === 404;
+  useEffect(() => {
+    if (notFound) document.title = `Validation run not found · Data Reliability Copilot`;
+  }, [notFound]);
+  const v = load.state === "ok" ? load.data : null;
   return (
-    <LoadView load={load} onRetry={() => setK(k + 1)}>
-      {(v) => <ValidationView v={v} />}
-    </LoadView>
+    <>
+      <Breadcrumbs
+        items={[
+          { href: "#/incidents", label: "Incidents" },
+          ...(v?.incident_id ? [{ href: `#/incidents/${v.incident_id}`, label: "Incident" }] : []),
+          ...(v?.investigation_id ? [{ href: `#/investigations/${v.investigation_id}`, label: "Investigation" }] : []),
+          { label: "Sandbox validation" },
+        ]}
+      />
+      {load.state !== "ok" && <PageTitle>{notFound ? "Validation run not found" : "Recovery validation"}</PageTitle>}
+      <LoadView load={load} onRetry={reload} notFound={<NotFound what="validation run" id={id} back={{ href: "#/incidents", label: "Back to incidents" }} />}>
+        {(run) => <ValidationView v={run} updatedAt={load.state === "ok" ? load.updatedAt : undefined} />}
+      </LoadView>
+    </>
   );
 }
 
-export function ValidationView({ v }: { v: ValidationRun }) {
+export function ValidationView({ v, updatedAt }: { v: ValidationRun; updatedAt?: Date }) {
   const passed = v.status === "passed";
+  const active = v.status === "queued" || v.status === "running";
+  const steps = v.steps ?? [];
+  const isolation = v.isolation_checks ?? [];
+  const invariants = v.invariants ?? [];
   const keys = [...new Set([...Object.keys(v.metrics_before ?? {}), ...Object.keys(v.metrics_after ?? {})])];
   return (
     <>
-      <h1>Recovery validation <code>{v.id}</code></h1>
+      <PageTitle>Recovery validation <code>{v.id}</code></PageTitle>
       <div className="row" style={{ marginBottom: "var(--sp-4)" }}>
-        <StatusPill status={passed ? "pass" : v.status === "running" || v.status === "queued" ? "info" : "fail"} label={v.status} />
+        <Status entity="validation" value={v.status} />
         {passed && <EpistemicTag kind="verified" />}
-        <span className="muted">sandbox <code>{v.sandbox_db}</code> · started {fmtTime(v.started_at)} · cleaned up {fmtTime(v.cleaned_up_at)}</span>
+        <span className="muted">
+          sandbox <code>{v.sandbox_db}</code> · started {fmtTime(v.started_at)}
+          {active ? <> · updates automatically{updatedAt && <> · last checked {fmtClock(updatedAt)}</>}</> : <> · cleaned up {fmtTime(v.cleaned_up_at)}</>}
+        </span>
       </div>
       <p className="muted">
         Executed only on an isolated copy. "Verified" means the checks below passed in the sandbox; nothing was applied to production.
       </p>
-
+      {active && (
+        <Card title={v.status === "queued" ? "Waiting for a worker" : "Validating in the sandbox"}>
+          <div className="state" role="status">
+            <span className="spinner" aria-hidden="true" />{" "}
+            {v.status === "queued" ? "Queued — a worker will start it shortly." : "Running — creating the sandbox, copying the snapshot and running the stages below."}{" "}
+            Usually about a minute. Results appear here when it finishes.
+          </div>
+          <ol className="steps pending">
+            {Object.entries(STEP_INFO).map(([k, [title, info]]) => (
+              <li key={k}><div><strong>{title}</strong><div className="muted">{info}</div></div><span className="muted">pending</span></li>
+            ))}
+          </ol>
+        </Card>
+      )}
+      {v.error && <p className="banner tone-fail" role="note"><strong>The run stopped with an error:</strong> {v.error}</p>}
+      {!active && (
+      <>
       <Card title="Steps">
         <ol className="steps">
-          {v.steps.map((s) => (
+          {steps.map((s) => (
             <li key={s.name}>
               <div>
                 <strong>{STEP_INFO[s.name]?.[0] ?? s.name}</strong>
@@ -48,7 +97,7 @@ export function ValidationView({ v }: { v: ValidationRun }) {
                 {s.detail != null && <div className="mono detail">{fmtValue(s.detail)}</div>}
               </div>
               <span>
-                <StatusPill status={s.status} />
+                <Status entity="check" value={s.status} />
                 {s.duration_ms != null && <span className="muted"> {s.duration_ms} ms</span>}
               </span>
             </li>
@@ -59,7 +108,7 @@ export function ValidationView({ v }: { v: ValidationRun }) {
       <Card title="Isolation checks">
           <DataTable
             caption="Checks that the sandbox cannot touch production"
-            rows={v.isolation_checks}
+            rows={isolation}
             rowKey={(c) => c.name}
             columns={[
               { header: "Check", render: (c) => c.name },
@@ -71,7 +120,7 @@ export function ValidationView({ v }: { v: ValidationRun }) {
         <Card title="Business invariants">
           <DataTable
             caption="Invariants before and after the recovery"
-            rows={v.invariants}
+            rows={invariants}
             rowKey={(i) => i.name}
             columns={[
               { header: "Invariant", render: (i) => i.name },
@@ -95,6 +144,8 @@ export function ValidationView({ v }: { v: ValidationRun }) {
           ]}
         />
       </Card>
+      </>
+      )}
     </>
   );
 }
