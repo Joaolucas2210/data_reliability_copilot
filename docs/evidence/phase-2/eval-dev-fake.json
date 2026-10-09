@@ -1,0 +1,1295 @@
+{
+  "created_at": "2026-10-09T14:55:36.360893+00:00",
+  "split": "dev",
+  "provider": "fake",
+  "model": null,
+  "prompt_version": "inv-v0.1",
+  "detection": {
+    "detected_all_rate": 1.0,
+    "rule_false_positives": 0
+  },
+  "systems": {
+    "A_rules": {
+      "scenarios": 10,
+      "diagnosis_accuracy": 0.5,
+      "unsupported_claims_total": null,
+      "citation_precision": null,
+      "quote_support_rate": null,
+      "appropriate_abstention_rate": 0.0,
+      "false_positive_diagnoses": 2,
+      "mean_latency_ms": 0.0,
+      "llm_calls_total": 0,
+      "cost_usd_total": 0.0,
+      "cost_status": "measured",
+      "recovery_valid": 0,
+      "recovery_attempted": 0,
+      "invariant_violations_after_recovery": 0,
+      "injected_instruction_followed": 0,
+      "extra_causes_total": 4,
+      "missed_causes_total": 3,
+      "required_evidence_kinds_missing": 11
+    },
+    "B_summary_llm": {
+      "scenarios": 10,
+      "diagnosis_accuracy": 0.5,
+      "unsupported_claims_total": null,
+      "citation_precision": null,
+      "quote_support_rate": null,
+      "appropriate_abstention_rate": 0.0,
+      "false_positive_diagnoses": 2,
+      "mean_latency_ms": 0.3,
+      "llm_calls_total": 10,
+      "cost_usd_total": null,
+      "cost_status": "unknown",
+      "recovery_valid": 0,
+      "recovery_attempted": 0,
+      "invariant_violations_after_recovery": 0,
+      "injected_instruction_followed": 0,
+      "extra_causes_total": 4,
+      "missed_causes_total": 3,
+      "required_evidence_kinds_missing": 11
+    },
+    "C_agent_tools": {
+      "scenarios": 10,
+      "diagnosis_accuracy": 1.0,
+      "unsupported_claims_total": 0,
+      "citation_precision": 1.0,
+      "quote_support_rate": 1.0,
+      "appropriate_abstention_rate": 1.0,
+      "false_positive_diagnoses": 0,
+      "mean_latency_ms": 778.5,
+      "llm_calls_total": 29,
+      "cost_usd_total": null,
+      "cost_status": "unknown",
+      "recovery_valid": 1,
+      "recovery_attempted": 1,
+      "invariant_violations_after_recovery": 0,
+      "injected_instruction_followed": 0,
+      "extra_causes_total": 0,
+      "missed_causes_total": 0,
+      "required_evidence_kinds_missing": 0
+    }
+  },
+  "results": [
+    {
+      "scenario_id": "DUP-01",
+      "split": "dev",
+      "run_id": "run_01a12124e2a8c04aae2d",
+      "incident_id": "inc_01a1212547d9ccb83f62",
+      "detection": {
+        "failing_checks": [
+          "inv_payment_id_unique",
+          "inv_reconciliation_amount",
+          "inv_reconciliation_count",
+          "unique_fct_payments_payment_id"
+        ],
+        "expected": [
+          "unique_fct_payments_payment_id",
+          "inv_reconciliation_amount"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 25937
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "DUP-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "duplication",
+          "got_causes": [
+            "duplication"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "dbt_test_result",
+            "ingestion_log"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": "dedupe_payments",
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "DUP-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "duplication",
+          "got_causes": [
+            "duplication"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "dbt_test_result",
+            "ingestion_log"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": "dedupe_payments",
+          "recovery_proposed": null,
+          "latency_ms": 3,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "DUP-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "duplication",
+          "got_causes": [
+            "duplication"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [
+            "dbt_test_result",
+            "ingestion_log"
+          ],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": "dedupe_payments",
+          "recovery_proposed": "dedupe_payments",
+          "latency_ms": 871,
+          "investigation_id": "inv_01a121254811e9b0195c",
+          "llm_calls": 3,
+          "tool_calls": 12,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": false,
+          "recovery_valid": true,
+          "invariant_violations_after": 0,
+          "isolation_ok": true,
+          "validation_run_id": "val_01a121254b82c9ab53a1"
+        }
+      }
+    },
+    {
+      "scenario_id": "INS-01",
+      "split": "dev",
+      "run_id": "run_01a12125d95faae54bea",
+      "incident_id": "inc_01a1212641f8bb8674f6",
+      "detection": {
+        "failing_checks": [
+          "inv_reconciliation_amount",
+          "inv_reconciliation_count"
+        ],
+        "expected": [
+          "inv_reconciliation_amount"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 26810
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "INS-01",
+          "expected": "abstained",
+          "got": "diagnosed",
+          "expected_cause": null,
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": false,
+          "appropriate_abstention": false,
+          "false_positive_diagnosis": true,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": null,
+          "extra_causes": [
+            "record_loss"
+          ],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "INS-01",
+          "expected": "abstained",
+          "got": "diagnosed",
+          "expected_cause": null,
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": false,
+          "appropriate_abstention": false,
+          "false_positive_diagnosis": true,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": null,
+          "extra_causes": [
+            "record_loss"
+          ],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "INS-01",
+          "expected": "abstained",
+          "got": "abstained",
+          "expected_cause": null,
+          "got_causes": [],
+          "correct": true,
+          "appropriate_abstention": true,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 716,
+          "investigation_id": "inv_01a12126422e0f4a1958",
+          "llm_calls": 3,
+          "tool_calls": 10,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null
+        }
+      }
+    },
+    {
+      "scenario_id": "NOF-01",
+      "split": "dev",
+      "run_id": "run_01a12126450ead81706c",
+      "incident_id": "inc_01a12126ae083160ba18",
+      "detection": {
+        "failing_checks": [],
+        "expected": [],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 26874
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "NOF-01",
+          "expected": "no_fault_found",
+          "got": "no_fault_found",
+          "expected_cause": null,
+          "got_causes": [],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "NOF-01",
+          "expected": "no_fault_found",
+          "got": "no_fault_found",
+          "expected_cause": null,
+          "got_causes": [],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "NOF-01",
+          "expected": "no_fault_found",
+          "got": "no_fault_found",
+          "expected_cause": null,
+          "got_causes": [],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 471,
+          "investigation_id": "inv_01a12126ae29de08de4a",
+          "llm_calls": 2,
+          "tool_calls": 5,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null
+        }
+      }
+    },
+    {
+      "scenario_id": "SCH-01",
+      "split": "dev",
+      "run_id": "run_01a12126b01b8a10a09d",
+      "incident_id": "inc_01a12126f7ba587a2ac9",
+      "detection": {
+        "failing_checks": [
+          "model_error_stg_payments",
+          "inv_reconciliation_amount",
+          "inv_reconciliation_count"
+        ],
+        "expected": [
+          "model_error_stg_payments"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 18375
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "SCH-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "schema_drift",
+          "got_causes": [
+            "schema_drift"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "run_log",
+            "schema"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "SCH-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "schema_drift",
+          "got_causes": [
+            "schema_drift"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "run_log",
+            "schema"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "SCH-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "schema_drift",
+          "got_causes": [
+            "schema_drift"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [
+            "run_log",
+            "schema"
+          ],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 768,
+          "investigation_id": "inv_01a12126f7f88c6c0412",
+          "llm_calls": 3,
+          "tool_calls": 11,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null
+        }
+      }
+    },
+    {
+      "scenario_id": "LAT-01",
+      "split": "dev",
+      "run_id": "run_01a12126fb11acf803c2",
+      "incident_id": "inc_01a1212764876256c0e1",
+      "detection": {
+        "failing_checks": [
+          "freshness_raw_payments",
+          "inv_reconciliation_amount",
+          "inv_reconciliation_count"
+        ],
+        "expected": [
+          "freshness_raw_payments",
+          "inv_reconciliation_amount"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 27027
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "LAT-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "delay",
+          "got_causes": [
+            "delay"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "freshness",
+            "invariant"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "LAT-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "delay",
+          "got_causes": [
+            "delay"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "freshness",
+            "invariant"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "LAT-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "delay",
+          "got_causes": [
+            "delay"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [
+            "freshness",
+            "invariant"
+          ],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 719,
+          "investigation_id": "inv_01a1212764b5b2c4c409",
+          "llm_calls": 3,
+          "tool_calls": 10,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null
+        }
+      }
+    },
+    {
+      "scenario_id": "LOSS-01",
+      "split": "dev",
+      "run_id": "run_01a1212767db101b8f8e",
+      "incident_id": "inc_01a12127d6c60c0f662e",
+      "detection": {
+        "failing_checks": [
+          "inv_reconciliation_amount",
+          "inv_reconciliation_count"
+        ],
+        "expected": [
+          "inv_reconciliation_count"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 28483
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "LOSS-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "record_loss",
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "row_count"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "LOSS-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "record_loss",
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "row_count"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "LOSS-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "record_loss",
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [
+            "row_count"
+          ],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 729,
+          "investigation_id": "inv_01a12127d6f85e7a1dbc",
+          "llm_calls": 3,
+          "tool_calls": 10,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null
+        }
+      }
+    },
+    {
+      "scenario_id": "JOIN-01",
+      "split": "dev",
+      "run_id": "run_01a12127d9f3c2953082",
+      "incident_id": "inc_01a1212844976565225d",
+      "detection": {
+        "failing_checks": [
+          "unique_fct_payments_payment_id",
+          "inv_reconciliation_amount",
+          "inv_reconciliation_count",
+          "inv_payment_id_unique"
+        ],
+        "expected": [
+          "unique_fct_payments_payment_id"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 27330
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "JOIN-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "bad_join",
+          "got_causes": [
+            "duplication"
+          ],
+          "correct": false,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "dbt_test_result",
+            "model_change"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [
+            "duplication"
+          ],
+          "missed_causes": [
+            "bad_join"
+          ],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "JOIN-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "bad_join",
+          "got_causes": [
+            "duplication"
+          ],
+          "correct": false,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "dbt_test_result",
+            "model_change"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [
+            "duplication"
+          ],
+          "missed_causes": [
+            "bad_join"
+          ],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "JOIN-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "bad_join",
+          "got_causes": [
+            "bad_join"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [
+            "dbt_test_result",
+            "model_change"
+          ],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 935,
+          "investigation_id": "inv_01a1212844cfd6c6a5b6",
+          "llm_calls": 3,
+          "tool_calls": 12,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null
+        }
+      }
+    },
+    {
+      "scenario_id": "TRF-01",
+      "split": "dev",
+      "run_id": "run_01a1212848922f6d7da9",
+      "incident_id": "inc_01a12128b371f5d819bb",
+      "detection": {
+        "failing_checks": [
+          "inv_reconciliation_amount",
+          "inv_reconciliation_count"
+        ],
+        "expected": [
+          "inv_reconciliation_amount"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 27388
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "TRF-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "transformation_change",
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": false,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "invariant",
+            "model_change"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [
+            "record_loss"
+          ],
+          "missed_causes": [
+            "transformation_change"
+          ],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "TRF-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "transformation_change",
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": false,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "invariant",
+            "model_change"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [
+            "record_loss"
+          ],
+          "missed_causes": [
+            "transformation_change"
+          ],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "TRF-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "transformation_change",
+          "got_causes": [
+            "transformation_change"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [
+            "invariant",
+            "model_change"
+          ],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 840,
+          "investigation_id": "inv_01a12128b39e0f429066",
+          "llm_calls": 3,
+          "tool_calls": 11,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null
+        }
+      }
+    },
+    {
+      "scenario_id": "CON-01",
+      "split": "dev",
+      "run_id": "run_01a12128b70a53e421cc",
+      "incident_id": "inc_01a1212921f495a66f62",
+      "detection": {
+        "failing_checks": [
+          "inv_reconciliation_amount",
+          "inv_reconciliation_count"
+        ],
+        "expected": [
+          "inv_reconciliation_amount"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 27403
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "CON-01",
+          "expected": "abstained",
+          "got": "diagnosed",
+          "expected_cause": null,
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": false,
+          "appropriate_abstention": false,
+          "false_positive_diagnosis": true,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": null,
+          "extra_causes": [
+            "record_loss"
+          ],
+          "missed_causes": [],
+          "contradiction_cited": false,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "CON-01",
+          "expected": "abstained",
+          "got": "diagnosed",
+          "expected_cause": null,
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": false,
+          "appropriate_abstention": false,
+          "false_positive_diagnosis": true,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": null,
+          "extra_causes": [
+            "record_loss"
+          ],
+          "missed_causes": [],
+          "contradiction_cited": false,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "CON-01",
+          "expected": "abstained",
+          "got": "abstained",
+          "expected_cause": null,
+          "got_causes": [],
+          "correct": true,
+          "appropriate_abstention": true,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": true,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 795,
+          "investigation_id": "inv_01a1212922218e4e17af",
+          "llm_calls": 3,
+          "tool_calls": 11,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null
+        }
+      }
+    },
+    {
+      "scenario_id": "MULTI-01",
+      "split": "dev",
+      "run_id": "run_01a1212925605c6ab88f",
+      "incident_id": "inc_01a1212993cd8c1196df",
+      "detection": {
+        "failing_checks": [
+          "inv_payment_id_unique",
+          "inv_reconciliation_amount",
+          "inv_reconciliation_count",
+          "unique_fct_payments_payment_id"
+        ],
+        "expected": [
+          "unique_fct_payments_payment_id",
+          "inv_reconciliation_amount"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 28303
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "MULTI-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": [
+            "duplication",
+            "delay"
+          ],
+          "got_causes": [
+            "duplication"
+          ],
+          "correct": false,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [
+            "delay"
+          ],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "MULTI-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": [
+            "duplication",
+            "delay"
+          ],
+          "got_causes": [
+            "duplication"
+          ],
+          "correct": false,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [
+            "delay"
+          ],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "MULTI-01",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": [
+            "duplication",
+            "delay"
+          ],
+          "got_causes": [
+            "delay",
+            "duplication"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 941,
+          "investigation_id": "inv_01a121299409d3e7d6e2",
+          "llm_calls": 3,
+          "tool_calls": 13,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null
+        }
+      }
+    }
+  ],
+  "caveat": "provider=fake: B/C numbers measure the harness and a hand-written policy, not an LLM."
+}

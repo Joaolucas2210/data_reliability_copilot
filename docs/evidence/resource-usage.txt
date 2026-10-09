@@ -1,0 +1,16 @@
+	Command being timed: "drc reset"
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.75
+	Maximum resident set size (kbytes): 104060
+	Exit status: 0
+	Command being timed: "drc eval --split dev"
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:51.05
+	Maximum resident set size (kbytes): 286152
+	Exit status: 0
+	Command being timed: "drc eval --split final"
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:03.11
+	Maximum resident set size (kbytes): 286880
+	Exit status: 0
+	Command being timed: "drc demo"
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:18.19
+	Maximum resident set size (kbytes): 157524
+	Exit status: 0

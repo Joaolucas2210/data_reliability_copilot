@@ -1,0 +1,430 @@
+{
+  "validation_run": {
+    "id": "val_01a120fa25ee39fbb894",
+    "proposal_id": "prop_01a120fa235370ad4fe1",
+    "status": "passed",
+    "sandbox_db": "sandbox_01a120fa25ee39fbb894",
+    "steps": [
+      {
+        "name": "snapshot",
+        "detail": {
+          "raw.payments": {
+            "src": "2960:d07d5f813a0b49e0",
+            "copy": "2960:d07d5f813a0b49e0"
+          },
+          "raw.contracts": {
+            "src": "600:b0555ebce4999a62",
+            "copy": "600:b0555ebce4999a62"
+          },
+          "raw.customers": {
+            "src": "400:8effe59ffde5998c",
+            "copy": "400:8effe59ffde5998c"
+          },
+          "raw.installments": {
+            "src": "9120:3f31971c29ebb8e2",
+            "copy": "9120:3f31971c29ebb8e2"
+          },
+          "ops.control_totals": {
+            "src": "328:01116077c23c617b",
+            "copy": "328:01116077c23c617b"
+          },
+          "ops.ingestion_batches": {
+            "src": "332:3649d8f4a04e7716",
+            "copy": "332:3649d8f4a04e7716"
+          }
+        },
+        "status": "pass",
+        "duration_ms": 237
+      },
+      {
+        "name": "compile",
+        "detail": {
+          "exit_code": 0
+        },
+        "status": "pass"
+      },
+      {
+        "name": "static_check",
+        "detail": {
+          "passed": true,
+          "findings": [],
+          "changed_files": [
+            "models/staging/stg_payments.sql"
+          ]
+        },
+        "status": "pass"
+      },
+      {
+        "name": "dbt_build",
+        "detail": {
+          "exit_code": 0
+        },
+        "status": "pass"
+      },
+      {
+        "name": "data_tests",
+        "detail": {
+          "exit_code": 0
+        },
+        "status": "pass"
+      },
+      {
+        "name": "invariants",
+        "detail": {
+          "inv_payment_id_unique": true,
+          "inv_reconciliation_count": true,
+          "inv_reconciliation_amount": true
+        },
+        "status": "pass"
+      }
+    ],
+    "metrics_before": {
+      "fct_rows": 2960,
+      "report_days": 328,
+      "report_amount": "11691327.25",
+      "report_payments": 2960,
+      "fct_distinct_payment_ids": 2946
+    },
+    "metrics_after": {
+      "fct_rows": 2946,
+      "report_days": 328,
+      "report_amount": "11650312.20",
+      "report_payments": 2946,
+      "fct_distinct_payment_ids": 2946
+    },
+    "invariants": [
+      {
+        "name": "inv_reconciliation_amount",
+        "after": {
+          "diff": "0.00",
+          "passed": true,
+          "violations": 0
+        },
+        "before": {
+          "diff": "41015.05",
+          "passed": false,
+          "violations": 1
+        },
+        "passed": true
+      },
+      {
+        "name": "inv_reconciliation_count",
+        "after": {
+          "diff": "0",
+          "passed": true,
+          "violations": 0
+        },
+        "before": {
+          "diff": "14",
+          "passed": false,
+          "violations": 1
+        },
+        "passed": true
+      },
+      {
+        "name": "inv_payment_id_unique",
+        "after": {
+          "diff": "0",
+          "passed": true,
+          "violations": 0
+        },
+        "before": {
+          "diff": "0",
+          "passed": false,
+          "violations": 14
+        },
+        "passed": true
+      }
+    ],
+    "isolation_checks": [
+      {
+        "name": "sandbox_role_cannot_connect_warehouse",
+        "detail": " failed: connection to server at \"127.0.0.1\", port 55432 failed: FATAL: permission denied for database \"warehouse\" DETAIL: User does not have CONNECT privilege.",
+        "passed": true
+      },
+      {
+        "name": "sandbox_role_cannot_connect_app",
+        "detail": "ection failed: connection to server at \"127.0.0.1\", port 55432 failed: FATAL: permission denied for database \"app\" DETAIL: User does not have CONNECT privilege.",
+        "passed": true
+      },
+      {
+        "name": "sandbox_target_is_sandbox_db",
+        "detail": "sandbox_01a120fa25ee39fbb894",
+        "passed": true
+      },
+      {
+        "name": "sandbox_role_not_superuser",
+        "detail": "sandbox_rw super=False",
+        "passed": true
+      },
+      {
+        "name": "production_warehouse_unchanged",
+        "detail": {
+          "raw.payments": "2960:d07d5f813a0b49e0",
+          "marts.fct_payments": "2960:1e891661df1b51c7",
+          "staging.stg_payments": "2960:d07d5f813a0b49e0",
+          "marts.rpt_daily_collections": "328:96955354a1772070"
+        },
+        "passed": true
+      }
+    ],
+    "started_at": "2026-10-09 14:03:47.046613+00:00",
+    "finished_at": "2026-10-09 14:04:25.985465+00:00",
+    "cleaned_up_at": "2026-10-09 14:04:25.974361+00:00",
+    "error": null
+  },
+  "investigation": {
+    "id": "inv_01a120fa235370ad4fe1",
+    "status": "completed",
+    "outcome": "diagnosed",
+    "mode": "fake",
+    "llm_provider": "fake",
+    "prompt_version": "inv-v0.1",
+    "diagnosis": {
+      "outcome": "diagnosed",
+      "summary": "A payments batch was re-sent after an ack timeout and loaded twice; duplicated payments flow through stg_payments into fct_payments and inflate rpt_daily_collections.",
+      "recovery": {
+        "playbook": "dedupe_payments",
+        "rationale": "Duplicates share payment_id; keeping the earliest load restores one row per payment.",
+        "evidence_ids": [
+          "ev_39d549f7e09a598b",
+          "ev_cc489a2175b39d94"
+        ]
+      },
+      "next_step": "Validate the dedupe_payments playbook in an isolated sandbox, then human review.",
+      "hypotheses": [
+        {
+          "id": "H1",
+          "status": "supported",
+          "statement": "Duplicate ingestion of a payments batch",
+          "cause_category": "duplication",
+          "supporting_evidence_ids": [
+            "ev_39d549f7e09a598b",
+            "ev_cc489a2175b39d94",
+            "ev_d60057035f8f0bbb",
+            "ev_9e4cf32cd9e6f2d1"
+          ],
+          "contradicting_evidence_ids": []
+        },
+        {
+          "id": "H2",
+          "status": "refuted",
+          "statement": "Transformation change",
+          "cause_category": "transformation_change",
+          "supporting_evidence_ids": [],
+          "contradicting_evidence_ids": [
+            "ev_179a6b36034a017d"
+          ]
+        }
+      ],
+      "observed_facts": [
+        {
+          "quote": "check unique_fct_payments_payment_id (data_test) on fct_payments: status=fail",
+          "statement": "The uniqueness test on fct_payments.payment_id failed",
+          "evidence_ids": [
+            "ev_9e4cf32cd9e6f2d1"
+          ]
+        },
+        {
+          "quote": "raw.payments.payment_id: 14 duplicated key(s)",
+          "statement": "raw.payments contains duplicated payment_id values",
+          "evidence_ids": [
+            "ev_39d549f7e09a598b"
+          ]
+        },
+        {
+          "quote": "batch L202610091403-payments-2026-09-28 attempt=2 rows=14 status=loaded",
+          "statement": "A payments batch was loaded a second time (attempt 2)",
+          "evidence_ids": [
+            "ev_cc489a2175b39d94"
+          ]
+        },
+        {
+          "quote": "\"event\": \"ack_timeout\"",
+          "statement": "The ingestion job logged an ack timeout before the retry",
+          "evidence_ids": [
+            "ev_d60057035f8f0bbb"
+          ]
+        },
+        {
+          "quote": "2026-09-28: report payments_count=28 control=14",
+          "statement": "The report diverges from control totals",
+          "evidence_ids": [
+            "ev_3e0bc7fcc6e0503c"
+          ]
+        },
+        {
+          "quote": "no model code changes since previous run",
+          "statement": "No model code changed since the previous run",
+          "evidence_ids": [
+            "ev_179a6b36034a017d"
+          ]
+        }
+      ],
+      "estimated_scope": "rpt_daily_collections for business date 2026-09-28; fct_payments; stg_payments",
+      "missing_information": [
+        "confirmation from ingestion owner that the first attempt was committed"
+      ],
+      "contradicting_evidence": [],
+      "self_reported_confidence": "high"
+    },
+    "citation_report": {
+      "cited_ids": 6,
+      "enforcement": null,
+      "facts_total": 6,
+      "missing_ids": [],
+      "existing_ids": 6,
+      "facts_supported": 6,
+      "unsupported_facts": [],
+      "citation_precision": 1.0
+    },
+    "usage": {
+      "wall_ms": 540,
+      "cost_usd": null,
+      "fallbacks": [],
+      "limit_hit": null,
+      "llm_calls": 3,
+      "tool_calls": 8,
+      "cost_status": "unknown",
+      "input_tokens": null,
+      "output_tokens": null,
+      "llm_latency_ms": 0
+    },
+    "limits": {
+      "max_rounds": 3,
+      "max_wall_s": 300,
+      "max_cost_usd": 1.0,
+      "max_llm_calls": 6,
+      "max_tool_calls": 20,
+      "max_input_tokens": 120000
+    }
+  },
+  "audit_timeline": [
+    {
+      "at": "2026-10-09 14:03:46.279374+00:00",
+      "actor": "rules",
+      "action": "incident.opened",
+      "entity_type": "incident",
+      "entity_id": "inc_01a120fa23392e1ede00",
+      "from_status": null,
+      "to_status": "open"
+    },
+    {
+      "at": "2026-10-09 14:03:46.384553+00:00",
+      "actor": "system",
+      "action": "investigation.created",
+      "entity_type": "investigation",
+      "entity_id": "inv_01a120fa235370ad4fe1",
+      "from_status": null,
+      "to_status": "queued"
+    },
+    {
+      "at": "2026-10-09 14:03:46.405010+00:00",
+      "actor": "worker",
+      "action": "investigation.status",
+      "entity_type": "investigation",
+      "entity_id": "inv_01a120fa235370ad4fe1",
+      "from_status": "queued",
+      "to_status": "running"
+    },
+    {
+      "at": "2026-10-09 14:03:46.405010+00:00",
+      "actor": "worker",
+      "action": "incident.status",
+      "entity_type": "incident",
+      "entity_id": "inc_01a120fa23392e1ede00",
+      "from_status": "open",
+      "to_status": "investigating"
+    },
+    {
+      "at": "2026-10-09 14:03:46.976947+00:00",
+      "actor": "agent",
+      "action": "proposal.created",
+      "entity_type": "proposal",
+      "entity_id": "prop_01a120fa235370ad4fe1",
+      "from_status": null,
+      "to_status": "proposed"
+    },
+    {
+      "at": "2026-10-09 14:03:46.999410+00:00",
+      "actor": "agent",
+      "action": "investigation.status",
+      "entity_type": "investigation",
+      "entity_id": "inv_01a120fa235370ad4fe1",
+      "from_status": "running",
+      "to_status": "awaiting_review"
+    },
+    {
+      "at": "2026-10-09 14:03:46.999410+00:00",
+      "actor": "agent",
+      "action": "incident.status",
+      "entity_type": "incident",
+      "entity_id": "inc_01a120fa23392e1ede00",
+      "from_status": "investigating",
+      "to_status": "awaiting_review"
+    },
+    {
+      "at": "2026-10-09 14:03:47.046613+00:00",
+      "actor": "worker",
+      "action": "proposal.status",
+      "entity_type": "proposal",
+      "entity_id": "prop_01a120fa235370ad4fe1",
+      "from_status": "proposed",
+      "to_status": "validating"
+    },
+    {
+      "at": "2026-10-09 14:03:47.046613+00:00",
+      "actor": "worker",
+      "action": "validation.started",
+      "entity_type": "validation",
+      "entity_id": "val_01a120fa25ee39fbb894",
+      "from_status": null,
+      "to_status": "running"
+    },
+    {
+      "at": "2026-10-09 14:04:25.985465+00:00",
+      "actor": "worker",
+      "action": "validation.status",
+      "entity_type": "validation",
+      "entity_id": "val_01a120fa25ee39fbb894",
+      "from_status": "running",
+      "to_status": "passed"
+    },
+    {
+      "at": "2026-10-09 14:04:25.985465+00:00",
+      "actor": "worker",
+      "action": "proposal.status",
+      "entity_type": "proposal",
+      "entity_id": "prop_01a120fa235370ad4fe1",
+      "from_status": "validating",
+      "to_status": "validated"
+    },
+    {
+      "at": "2026-10-09 14:04:44.440101+00:00",
+      "actor": "dev:approver",
+      "action": "investigation.status",
+      "entity_type": "investigation",
+      "entity_id": "inv_01a120fa235370ad4fe1",
+      "from_status": "awaiting_review",
+      "to_status": "completed"
+    },
+    {
+      "at": "2026-10-09 14:04:44.440101+00:00",
+      "actor": "dev:approver",
+      "action": "proposal.status",
+      "entity_type": "proposal",
+      "entity_id": "prop_01a120fa235370ad4fe1",
+      "from_status": "validated",
+      "to_status": "approved"
+    },
+    {
+      "at": "2026-10-09 14:04:44.440101+00:00",
+      "actor": "dev:approver",
+      "action": "incident.status",
+      "entity_type": "incident",
+      "entity_id": "inc_01a120fa23392e1ede00",
+      "from_status": "awaiting_review",
+      "to_status": "resolved"
+    }
+  ]
+}

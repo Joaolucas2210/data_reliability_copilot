@@ -1,0 +1,2 @@
+fake-v2 frozen: src/drc/fake_llm.py sha256[:16]=66a86a5855b34aee at 2026-10-09T14:55:50Z, before first final-split run
+fake policy hash before final re-run: 66a86a5855b34aee
