@@ -1,0 +1,125 @@
+/* Design tokens — Data Reliability Copilot.
+   Every fg/bg pair listed in scripts/contrast.mjs is checked against WCAG 2.2 AA (`npm run contrast`).
+   Theme: follows prefers-color-scheme; [data-theme] on <html> overrides it. */
+
+:root {
+  color-scheme: light;
+  /* surfaces & text */
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #eef0f3;
+  --text: #1a1d23;
+  --text-muted: #4a5260;
+  --border: #d4d8de; /* decorative separators only */
+  --border-strong: #6b7380; /* component boundaries: >= 3:1 */
+  --focus: #1d4ed8;
+  --link: #1d4ed8;
+
+  /* status: fg on its own subtle bg */
+  --pass-fg: #166534;
+  --pass-bg: #dcfce7;
+  --warn-fg: #854d0e;
+  --warn-bg: #fef3c7;
+  --fail-fg: #b91c1c;
+  --fail-bg: #fee2e2;
+  --info-fg: #1e40af;
+  --info-bg: #dbeafe;
+  --unknown-fg: #374151;
+  --unknown-bg: #e5e7eb;
+
+  /* epistemic categories (always paired with label + shape, never color alone) */
+  --fact-fg: #1f2937;
+  --fact-bg: #e5e7eb;
+  --hypothesis-fg: #6b21a8;
+  --hypothesis-bg: #f3e8ff;
+  --recommendation-fg: #9a3412;
+  --recommendation-bg: #ffedd5;
+  --verified-fg: #166534;
+  --verified-bg: #dcfce7;
+
+  /* typography */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-md: 1rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: 1.5rem;
+  --lh: 1.5;
+
+  /* spacing (4px base) & shape */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-6: 1.5rem;
+  --sp-8: 2rem;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --target-min: 24px; /* WCAG 2.5.8 */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0f1115;
+    --surface: #171a21;
+    --surface-2: #1f232c;
+    --text: #e6e8ec;
+    --text-muted: #a3aab6;
+    --border: #2f3542;
+    --border-strong: #7a8291;
+    --focus: #8ab4ff;
+    --link: #8ab4ff;
+    --pass-fg: #86efac;
+    --pass-bg: #12301f;
+    --warn-fg: #fcd34d;
+    --warn-bg: #3a2a06;
+    --fail-fg: #fca5a5;
+    --fail-bg: #3b1414;
+    --info-fg: #93c5fd;
+    --info-bg: #142544;
+    --unknown-fg: #d1d5db;
+    --unknown-bg: #2a2f38;
+    --fact-fg: #e5e7eb;
+    --fact-bg: #2a2f38;
+    --hypothesis-fg: #d8b4fe;
+    --hypothesis-bg: #2e1a47;
+    --recommendation-fg: #fdba74;
+    --recommendation-bg: #3b200d;
+    --verified-fg: #86efac;
+    --verified-bg: #12301f;
+  }
+}
+
+/* explicit override — same values as the media query block */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1115;
+  --surface: #171a21;
+  --surface-2: #1f232c;
+  --text: #e6e8ec;
+  --text-muted: #a3aab6;
+  --border: #2f3542;
+  --border-strong: #7a8291;
+  --focus: #8ab4ff;
+  --link: #8ab4ff;
+  --pass-fg: #86efac;
+  --pass-bg: #12301f;
+  --warn-fg: #fcd34d;
+  --warn-bg: #3a2a06;
+  --fail-fg: #fca5a5;
+  --fail-bg: #3b1414;
+  --info-fg: #93c5fd;
+  --info-bg: #142544;
+  --unknown-fg: #d1d5db;
+  --unknown-bg: #2a2f38;
+  --fact-fg: #e5e7eb;
+  --fact-bg: #2a2f38;
+  --hypothesis-fg: #d8b4fe;
+  --hypothesis-bg: #2e1a47;
+  --recommendation-fg: #fdba74;
+  --recommendation-bg: #3b200d;
+  --verified-fg: #86efac;
+  --verified-bg: #12301f;
+}
