@@ -1,0 +1,65 @@
+name: ci
+on:
+  push: {branches: [main]}
+  pull_request:
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env: {POSTGRES_USER: drc_admin, POSTGRES_PASSWORD: local-admin-only, POSTGRES_DB: postgres}
+        ports: ["55432:5432"]
+        options: --health-cmd "pg_isready -U drc_admin" --health-interval 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: {version: "0.12.17"}
+      - run: uv sync --frozen
+      - run: uv run ruff format --check src tests && uv run ruff check src tests
+      - run: uv run mypy src
+      - run: uv run pytest tests/test_unit.py -q
+      - name: bootstrap local roles (CI-only throwaway passwords, same as docker-compose)
+        run: docker exec ${{ job.services.postgres.id }} psql -U drc_admin -d postgres -f - < infra/local/init.sql
+      - name: vertical slice + integration tests (fake LLM, no secrets)
+        env: {DRC_LLM_PROVIDER: fake, MLFLOW_DISABLE_AGENT_HINT: "1"}
+        run: |
+          (cd dbt && uv run dbt deps --profiles-dir .)
+          uv run drc migrate
+          uv run drc demo
+          uv run pytest tests/test_integration.py -q
+      - name: dependency audit (known vulnerabilities)
+        run: uv export --frozen --no-hashes --no-emit-project > /tmp/req.txt && uv run pip-audit -r /tmp/req.txt --no-deps --disable-pip
+        continue-on-error: true  # advisory until triaged; see docs/operations/ci.md
+
+  web:
+    runs-on: ubuntu-24.04
+    defaults: {run: {working-directory: web}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "24", cache: npm, cache-dependency-path: web/package-lock.json}
+      - run: npm ci
+      - run: npm run typecheck && npm run build && npm run contrast
+      - run: npm audit --audit-level=high
+        continue-on-error: true
+      - run: npx playwright install --with-deps chromium && npm run a11y
+
+  secrets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: gitleaks/gitleaks-action@v2
+        env: {GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"}
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with: {fail-on-severity: high}
