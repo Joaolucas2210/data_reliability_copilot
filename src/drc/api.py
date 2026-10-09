@@ -1,0 +1,232 @@
+"""HTTP API (FastAPI). Contract: docs/architecture/api-contract.md. Reads are bounded; writes enqueue jobs."""
+
+import os
+from typing import Annotated, Literal
+
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+from drc import agent, obs, store, worker
+
+AUTH_MODE = os.environ.get("DRC_AUTH_MODE", "dev")
+if AUTH_MODE != "dev":
+    # ADR-0013: Entra ID auth is not implemented; refuse to start rather than run unauthenticated in the cloud.
+    raise RuntimeError(f"DRC_AUTH_MODE={AUTH_MODE!r} not implemented; only 'dev' (local) is supported")
+
+Role = Literal["viewer", "investigator", "approver"]
+RANK = {"viewer": 0, "investigator": 1, "approver": 2}
+
+app = FastAPI(title="Data Reliability Copilot", version="0.1.0")
+obs.setup("drc-api")
+
+
+@app.exception_handler(HTTPException)
+async def _err(_: Request, exc: HTTPException) -> JSONResponse:
+    code = {403: "forbidden", 404: "not_found", 409: "conflict", 422: "invalid"}.get(exc.status_code, "error")
+    return JSONResponse({"error": {"code": code, "message": exc.detail}}, status_code=exc.status_code)
+
+
+def role(x_drc_role: Annotated[str | None, Header()] = None) -> Role:
+    r = x_drc_role or "viewer"
+    if r not in RANK:
+        raise HTTPException(422, f"unknown role {r}")
+    return r  # type: ignore[return-value]
+
+
+def need(min_role: Role):
+    def dep(r: Role = Depends(role)) -> Role:
+        if RANK[r] < RANK[min_role]:
+            raise HTTPException(403, f"role {r} cannot perform this action (needs {min_role})")
+        return r
+
+    return dep
+
+
+def _one(sql: str, *args) -> dict:
+    with store.connect() as conn:
+        row = conn.execute(sql, args).fetchone()
+    if not row:
+        raise HTTPException(404, "not found")
+    return row
+
+
+def _all(sql: str, *args) -> list[dict]:
+    with store.connect() as conn:
+        return conn.execute(sql, args).fetchall()
+
+
+@app.get("/api/pipelines/health")
+def health(_: Role = Depends(role)) -> list[dict]:
+    run = _all(
+        "select id, pipeline, scenario_id, status, started_at, finished_at, dbt_version, manifest_hash"
+        " from pipeline_run order by started_at desc limit 1"
+    )
+    if not run:
+        return []
+    r = run[0]
+    r["scenario_id"] = None  # ground-truth label: never exposed outside the benchmark harness
+    counts = {s: 0 for s in ("pass", "warn", "fail", "error")}
+    fresh = "unknown"
+    for c in _all("select check_type, status from quality_check_result where pipeline_run_id=%s", r["id"]):
+        if c["status"] in counts:
+            counts[c["status"]] += 1
+        if c["check_type"] == "freshness":
+            fresh = c["status"] if fresh in ("unknown", "pass") else fresh
+    open_n = _all("select count(*) n from incident where status not in ('resolved','dismissed')")[0]["n"]
+    return [
+        {
+            "pipeline": r["pipeline"],
+            "last_run": r,
+            "checks": counts,
+            "freshness": fresh,
+            "open_incidents": open_n,
+        }
+    ]
+
+
+@app.get("/api/incidents")
+def incidents(status: str | None = None, limit: int = 50, _: Role = Depends(role)) -> list[dict]:
+    return _all(
+        "select id,title,severity,status,dataset_id,occurrences,opened_at,updated_at,closed_at from incident"
+        " where (%s::text is null or status=%s) order by opened_at desc limit %s",
+        status,
+        status,
+        min(limit, 200),
+    )
+
+
+@app.get("/api/incidents/{incident_id}")
+def incident(incident_id: str, _: Role = Depends(role)) -> dict:
+    inc = _one(
+        "select id,title,severity,status,dataset_id,occurrences,opened_at,updated_at,closed_at,"
+        "first_pipeline_run_id,last_pipeline_run_id from incident where id=%s",
+        incident_id,
+    )
+    checks = _all(
+        "select q.* from quality_check_result q where q.pipeline_run_id=%s and"
+        " (q.status in ('fail','error','warn') or q.id in (select check_id from incident_check"
+        " where incident_id=%s)) order by check_type, check_name",
+        inc["last_pipeline_run_id"],
+        incident_id,
+    )
+    invs = _all(
+        "select id,status,outcome,mode,llm_provider,llm_model,created_at,finished_at from investigation"
+        " where incident_id=%s order by created_at desc",
+        incident_id,
+    )
+    ids = [incident_id, inc["last_pipeline_run_id"], *[i["id"] for i in invs]]
+    timeline = _all(
+        "select * from audit_event where entity_id = any(%s) or (entity_type='proposal' and entity_id in"
+        " (select id from remediation_proposal where investigation_id = any(%s))) order by at limit 200",
+        ids,
+        ids,
+    )
+    return {"incident": inc, "checks": checks, "timeline": timeline, "investigations": invs}
+
+
+class StartBody(BaseModel):
+    provider: Literal["fake", "anthropic"] | None = None
+
+
+@app.post("/api/incidents/{incident_id}/investigations", status_code=202)
+def start_investigation(
+    incident_id: str,
+    body: StartBody | None = None,
+    _: Role = Depends(need("investigator")),
+    idempotency_key: Annotated[str | None, Header()] = None,
+) -> dict:
+    _one("select id from incident where id=%s", incident_id)
+    try:
+        inv_id = agent.create(
+            incident_id, provider=body.provider if body else None, idempotency_key=idempotency_key
+        )
+    except agent.ClosedIncidentError as e:
+        raise HTTPException(409, str(e)) from e
+    job = worker.enqueue("investigate", {"investigation_id": inv_id}, f"investigate:{inv_id}")
+    return {"investigation_id": inv_id, "job_id": job}
+
+
+@app.get("/api/investigations/{inv_id}")
+def investigation(inv_id: str, r: Role = Depends(role)) -> dict:
+    inv = _one("select * from investigation where id=%s", inv_id)
+    ev = _all(
+        "select e.* from evidence e join investigation_evidence ie on ie.evidence_id=e.id"
+        " where ie.investigation_id=%s order by e.kind, e.id",
+        inv_id,
+    )
+    for e in ev:
+        e["redacted"] = e["access"] == "restricted" and r == "viewer"
+        if e["redacted"]:
+            e["content"] = None
+    inv["evidence"] = ev
+    inv["hypotheses"] = _all("select * from hypothesis where investigation_id=%s order by id", inv_id)
+    inv["tool_calls"] = _all(
+        "select tool,args,status,rows_returned,duration_ms,error,created_at from tool_call"
+        " where investigation_id=%s order by created_at",
+        inv_id,
+    )
+    inv["proposals"] = _all(
+        "select p.*, (select id from validation_run v where v.proposal_id=p.id order by started_at"
+        " desc limit 1) latest_validation_run_id from remediation_proposal p"
+        " where investigation_id=%s",
+        inv_id,
+    )
+    inv.pop("idempotency_key", None)
+    return inv
+
+
+class ReviewBody(BaseModel):
+    decision: Literal["approve", "reject"]
+    note: str = ""
+    close_incident: Literal["resolved", "dismissed"] | None = None
+
+
+@app.post("/api/investigations/{inv_id}/review")
+def review(inv_id: str, body: ReviewBody, r: Role = Depends(need("approver"))) -> dict:
+    inv = _one("select status from investigation where id=%s", inv_id)
+    if inv["status"] != "awaiting_review":
+        raise HTTPException(409, f"investigation is {inv['status']}, not awaiting_review")
+    agent.review(
+        inv_id, body.decision, reviewer=f"dev:{r}", note=body.note, close_incident=body.close_incident
+    )
+    return investigation(inv_id, r)
+
+
+@app.post("/api/investigations/{inv_id}/cancel", status_code=202)
+def cancel(inv_id: str, r: Role = Depends(need("investigator"))) -> dict:
+    try:
+        return {"result": agent.request_cancel(inv_id, actor=f"dev:{r}")}
+    except LookupError as e:
+        raise HTTPException(404, "not found") from e
+    except ValueError as e:
+        raise HTTPException(409, str(e)) from e
+
+
+@app.post("/api/proposals/{proposal_id}/validations", status_code=202)
+def start_validation(proposal_id: str, _: Role = Depends(need("investigator"))) -> dict:
+    p = _one("select status from remediation_proposal where id=%s", proposal_id)
+    if p["status"] not in ("proposed", "validated", "validation_failed"):
+        raise HTTPException(409, f"proposal is {p['status']}")
+    job = worker.enqueue("validate", {"proposal_id": proposal_id})
+    return {"job_id": job}
+
+
+@app.get("/api/validation-runs/{vr_id}")
+def validation_run(vr_id: str, _: Role = Depends(role)) -> dict:
+    return _one("select * from validation_run where id=%s", vr_id)
+
+
+@app.get("/api/evaluations/latest")
+def evaluations(_: Role = Depends(role)) -> dict:
+    return {
+        "runs": _all(
+            "select distinct on (split, system) * from eval_run order by split, system, created_at desc"
+        )
+    }
+
+
+@app.get("/api/healthz")
+def healthz() -> dict:
+    _all("select 1")
+    return {"ok": True}
