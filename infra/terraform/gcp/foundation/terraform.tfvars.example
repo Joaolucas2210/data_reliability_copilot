@@ -1,0 +1,9 @@
+project_id           = "drc-dev-000000"
+project_number       = "000000000000"
+env                  = "dev"
+owner                = "data-reliability-team"
+cost_center          = "cc-0000"
+github_repository    = "example-org/data-reliability-copilot"
+billing_account_id   = "000000-000000-000000"
+monthly_budget_units = 50
+state_bucket         = "drc-dev-000000-drc-tfstate"

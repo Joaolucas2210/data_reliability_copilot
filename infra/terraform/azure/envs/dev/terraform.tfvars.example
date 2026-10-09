@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars (gitignored). No secrets belong here.
+subscription_id       = "00000000-0000-0000-0000-000000000000"
+owner                 = "data-reliability-team"
+cost_center           = "cc-0000"
+budget_contact_emails = ["alerts@example.com"]
+budget_start_date     = "2026-11-01T00:00:00Z"
+image_tag             = "sha-0000000"

@@ -1,0 +1,8 @@
+.terraform/
+.plugin-cache/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+backend.hcl
+*.tfplan
+crash.log

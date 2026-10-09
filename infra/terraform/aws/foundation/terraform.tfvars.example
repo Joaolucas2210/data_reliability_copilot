@@ -1,0 +1,7 @@
+env                   = "dev"
+owner                 = "data-reliability-team"
+cost_center           = "cc-0000"
+github_repository     = "example-org/data-reliability-copilot"
+state_bucket_arn      = "arn:aws:s3:::drc-tfstate-000000000000-sa-east-1"
+monthly_budget_usd    = 50
+budget_contact_emails = ["alerts@example.com"]

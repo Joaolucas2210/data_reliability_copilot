@@ -1,0 +1,105 @@
+name: terraform
+
+on:
+  pull_request:
+    paths: ["infra/terraform/**", ".github/workflows/terraform.yml"]
+  push:
+    branches: [main]
+    paths: ["infra/terraform/**"]
+  workflow_dispatch:
+    inputs:
+      root:
+        description: "Root to plan (plan only; apply is not automated in this phase)"
+        type: choice
+        options: [azure/envs/dev, aws/foundation, gcp/foundation]
+        default: azure/envs/dev
+
+permissions:
+  contents: read
+
+env:
+  TF_VERSION: 1.16.5
+  TF_IN_AUTOMATION: "1"
+
+jobs:
+  static:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        root: [azure/bootstrap, azure/envs/dev, aws/bootstrap, aws/foundation, gcp/bootstrap, gcp/foundation]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - name: fmt
+        run: terraform fmt -check -recursive -diff
+        working-directory: infra/terraform
+      - name: init (no backend)
+        run: terraform init -backend=false -input=false -lockfile=readonly
+        working-directory: infra/terraform/${{ matrix.root }}
+      - name: validate
+        run: terraform validate -no-color
+        working-directory: infra/terraform/${{ matrix.root }}
+      - uses: terraform-linters/setup-tflint@v4
+        continue-on-error: true # optional linter; not a gate yet
+      - name: tflint (advisory)
+        continue-on-error: true
+        run: tflint --chdir=infra/terraform/${{ matrix.root }}
+
+  plan:
+    # Manual only. Uses OIDC federation — there are no cloud secrets in the repository or in GitHub secrets.
+    if: github.event_name == 'workflow_dispatch'
+    needs: static
+    runs-on: ubuntu-24.04
+    environment: dev # federated subjects are bound to environment:dev
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ROOT: ${{ inputs.root }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - if: startsWith(inputs.root, 'azure/')
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - if: startsWith(inputs.root, 'aws/')
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_CI_ROLE_ARN }}
+          aws-region: sa-east-1
+      - if: startsWith(inputs.root, 'gcp/')
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_CI_SERVICE_ACCOUNT }}
+
+      - name: init
+        working-directory: infra/terraform/${{ env.ROOT }}
+        env:
+          ARM_USE_OIDC: "true"
+          ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        run: terraform init -input=false -backend-config="${{ vars.TF_BACKEND_CONFIG }}"
+      - name: plan
+        working-directory: infra/terraform/${{ env.ROOT }}
+        env:
+          ARM_USE_OIDC: "true"
+          ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          # Non-secret inputs come from the GitHub "dev" environment as TF_VAR_<name> variables
+          # (exported below from the TF_VARS_JSON environment variable); nothing secret is passed.
+          TF_VARS_JSON: ${{ vars.TF_VARS_JSON }}
+        run: |
+          eval "$(jq -r 'to_entries[] | "export TF_VAR_\(.key)=\((if (.value|type)=="string" then .value else (.value|tojson) end)|@sh)"' <<<"$TF_VARS_JSON")"
+          terraform plan -input=false -lock-timeout=60s -out=tfplan
