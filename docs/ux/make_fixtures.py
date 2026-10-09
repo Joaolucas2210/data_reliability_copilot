@@ -2,7 +2,7 @@
 
 Per name: a duplication incident (unique fingerprint so it never merges with other fixtures) with an investigation
 awaiting review and a recovery proposal, plus an open manual incident for the start-investigation journey.
-Fixture-only data change: the fingerprint suffix `:ux-<name>` is what keeps the incidents separate.
+Fixture-only data change: the fingerprint suffix `:ux-<name>-<run>` (unique across rounds) is what keeps the incidents separate.
 """
 
 import json
@@ -19,7 +19,7 @@ for name in names:
     inv = agent.create(inc, provider="fake")
     st = agent.run(inv)
     with store.connect() as c:
-        c.execute("update incident set fingerprint = fingerprint || %s where id=%s", (f":ux-{name}", inc))
+        c.execute("update incident set fingerprint = fingerprint || %s where id=%s", (f":ux-{name}-{run}", inc))
     manual = quality.report_manual(run, "rpt_daily_collections", f"UX fixture {name}: analyst suspects totals are off")
     out[name] = {"dup_incident": inc, "dup_investigation": inv, "dup_proposal": st.get("proposal_id"),
                  "open_manual_incident": manual}
