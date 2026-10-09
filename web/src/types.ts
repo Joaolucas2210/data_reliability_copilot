@@ -70,6 +70,7 @@ export interface InvestigationSummary {
   llm_model: string | null;
   created_at: string;
   finished_at: string | null;
+  review_decision?: "approve" | "reject" | null;
 }
 
 export interface IncidentDetail {
@@ -198,6 +199,7 @@ export interface ValidationRun {
   investigation_id?: string;
   incident_id?: string;
   playbook?: string;
+  investigation_status?: string;
   status: string;
   error?: string | null;
   sandbox_db: string;

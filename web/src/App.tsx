@@ -2,7 +2,7 @@ import {
   ActionIcon, AppShell, Burger, Group, Kbd, Menu, NavLink, Select, Text, Tooltip, UnstyledButton, useComputedColorScheme,
   useMantineColorScheme,
 } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { useDisclosure, useHotkeys, useMediaQuery } from "@mantine/hooks";
 import { Spotlight, spotlight, type SpotlightActionData } from "@mantine/spotlight";
 import {
   IconActivityHeartbeat, IconAlertTriangle, IconBook2, IconChartBar, IconDeviceDesktop, IconMoon, IconPalette, IconSearch,
@@ -10,7 +10,7 @@ import {
 } from "@tabler/icons-react";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { announce, api, getRole, setRole, type Role } from "./api";
-import { ErrorBoundary, SkipLink } from "./components/ui";
+import { ErrorBoundary, fmtTime, SkipLink } from "./components/ui";
 import { Evaluations } from "./pages/Evaluations";
 import { Gallery } from "./pages/Gallery";
 import { Health } from "./pages/Health";
@@ -28,7 +28,7 @@ const ROUTES: [RegExp, (m: string[], q: URLSearchParams) => ReactNode, string][]
   [/^\/investigations\/([\w-]+)$/, (m) => <InvestigationPage id={m[1]} />, "Investigation"],
   [/^\/validation-runs\/([\w-]+)$/, (m) => <ValidationPage id={m[1]} />, "Recovery validation"],
   [/^\/evaluations$/, () => <Evaluations />, "Evaluation results"],
-  [/^\/help$/, () => <Help />, "Help & glossary"],
+  [/^\/help$/, (_m, q) => <Help term={q.get("term") ?? undefined} />, "Help & glossary"],
   [/^\/design-system$/, () => <Gallery />, "Design system"],
   [/^\/gallery$/, () => <Gallery />, "Design system"],
 ];
@@ -96,8 +96,8 @@ function useSpotlightActions(): SpotlightActionData[] {
   return [
     ...NAV.map((n) => ({ id: `nav-${n.href}`, label: n.label, description: "Go to page", onClick: go(n.href), leftSection: <n.icon size={18} />, group: "Pages" })),
     { id: "nav-ds", label: "Design system", description: "Components and states", onClick: go("#/design-system"), leftSection: <IconPalette size={18} />, group: "Pages" },
-    ...incidents.map((i) => ({ id: i.id, label: i.title, description: `${i.id} · ${i.status.replace("_", " ")}`, onClick: go(`#/incidents/${i.id}`), leftSection: <IconAlertTriangle size={18} />, group: "Unresolved incidents" })),
-    ...TERMS.map(([id, term]) => ({ id: `term-${id}`, label: term, description: "Glossary", onClick: go("#/help"), leftSection: <IconBook2 size={18} />, group: "Glossary" })),
+    ...incidents.map((i) => ({ id: i.id, label: i.title, description: `${i.dataset_id ?? "no dataset"} · opened ${fmtTime(i.opened_at)} · ${i.status.replace("_", " ")}`, onClick: go(`#/incidents/${i.id}`), leftSection: <IconAlertTriangle size={18} />, group: "Unresolved incidents" })),
+    ...TERMS.map(([id, term]) => ({ id: `term-${id}`, label: term, description: "Glossary", onClick: go(`#/help?term=${id}`), leftSection: <IconBook2 size={18} />, group: "Glossary" })),
   ];
 }
 
@@ -110,6 +110,17 @@ export function App() {
   const mainRef = useRef<HTMLElement>(null);
   const prevPath = useRef(pathname);
   const actions = useSpotlightActions();
+  useHotkeys([["/", () => spotlight.open()]]); // ignored while typing in inputs
+  const desktop = useMediaQuery("(min-width: 62em)") ?? true; // AppShell navbar breakpoint "md"
+  const burgerRef = useRef<HTMLButtonElement>(null);
+  // collapsed drawer is off-screen: keep it out of the tab order; Escape closes it and returns focus to the burger
+  useEffect(() => {
+    if (!opened) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { close(); burgerRef.current?.focus(); } };
+    addEventListener("keydown", onKey);
+    return () => removeEventListener("keydown", onKey);
+  }, [opened, close]);
+  const wide = useMediaQuery("(min-width: 36em)") ?? true; // room for the "Role" prefix and the longest role name
 
   const match = ROUTES.map(([re, render, title]) => ({ m: pathname.match(re), render, title })).find((r) => r.m);
 
@@ -137,7 +148,7 @@ export function App() {
         <AppShell.Header className="app-header">
           <Group h="100%" px={{ base: "xs", sm: "md" }} justify="space-between" wrap="nowrap">
             <Group gap="xs" wrap="nowrap">
-              <Burger opened={opened} onClick={toggle} hiddenFrom="md" size="sm" aria-label={opened ? "Close navigation" : "Open navigation"} />
+              <Burger ref={burgerRef} opened={opened} onClick={toggle} hiddenFrom="md" size="sm" aria-expanded={opened} aria-controls="primary-nav" aria-label={opened ? "Close navigation" : "Open navigation"} />
               <a href="#/" className="brand" aria-label="Data Reliability Copilot — pipeline health">
                 <span className="brand-mark" aria-hidden="true"><IconShieldCheck size={20} stroke={2} /></span>
                 <span className="brand-name">Data Reliability Copilot</span>
@@ -152,12 +163,12 @@ export function App() {
               <Select
                 aria-label="Role (development only)"
                 size="sm"
-                w={{ base: 128, sm: 150 }}
+                w={wide ? 184 : 128}
                 value={role}
                 allowDeselect={false}
                 comboboxProps={{ withinPortal: true }}
-                leftSection={<Text span size="xs" c="dimmed" aria-hidden="true">Role</Text>}
-                leftSectionWidth={44}
+                leftSection={wide ? <Text span size="xs" c="dimmed" aria-hidden="true">Role</Text> : undefined}
+                leftSectionWidth={wide ? 44 : undefined}
                 data={[{ value: "viewer", label: "viewer" }, { value: "investigator", label: "investigator" }, { value: "approver", label: "approver" }]}
                 onChange={(v) => {
                   if (!v) return;
@@ -171,7 +182,7 @@ export function App() {
           </Group>
         </AppShell.Header>
 
-        <AppShell.Navbar p="sm" aria-label="Primary">
+        <AppShell.Navbar p="sm" aria-label="Primary" id="primary-nav" inert={!desktop && !opened}>
           <div className="primary-nav">
             {NAV.map((n) => (
               <NavLink
@@ -220,7 +231,8 @@ export function App() {
         actions={actions}
         nothingFound="Nothing found"
         highlightQuery
-        shortcut={["mod + K", "/"]}
+        shortcut="mod + K"
+        tagsToIgnore={[]} // Ctrl/⌘+K works from inside text fields too; "/" (below) does not
         limit={12}
         searchProps={{ leftSection: <IconSearch size={18} />, placeholder: "Search pages, unresolved incidents and glossary terms…", "aria-label": "Search" }}
       />

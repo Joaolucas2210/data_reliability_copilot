@@ -44,7 +44,7 @@ export function HealthCards({ rows }: { rows: PipelineHealth[] }) {
             <Text size="sm" fw={600} mb={6}>Quality checks on the last run ({total})</Text>
             <SimpleGrid cols={{ base: 2, xs: 4 }} spacing="xs" mb="xs">
               {CHECKS.map(([k, label, tone]) => (
-                <Paper key={k} radius="md" p="sm" className={`stat-tile ${c[k] ? `tone-${tone}` : ""}`}>
+                <Paper key={k} radius="md" p="sm" className={`stat-tile ${c[k] && tone !== "pass" ? `tone-${tone}` : ""}`}>
                   <Text size="xs" fw={600} tt="uppercase">{label}</Text>
                   <Text size="xl" fw={700} lh={1.2}>{c[k]}</Text>
                 </Paper>

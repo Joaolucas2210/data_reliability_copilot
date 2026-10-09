@@ -464,6 +464,7 @@ def create(
     provider: str | None = None,
     model: str | None = None,
     idempotency_key: str | None = None,
+    actor: str = "system",
 ) -> str:
     provider = provider or settings.llm_provider
     model = None if provider == "fake" else (model or settings.llm_model)
@@ -496,7 +497,7 @@ def create(
         )
         store.audit(
             conn,
-            "system",
+            actor,
             "investigation.created",
             "investigation",
             inv_id,

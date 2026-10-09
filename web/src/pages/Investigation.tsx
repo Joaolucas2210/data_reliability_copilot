@@ -23,7 +23,9 @@ export function InvestigationPage({ id }: { id: string }) {
     if (notFound) document.title = "Investigation not found · Data Reliability Copilot";
     if (load.state !== "ok") return;
     const s = load.data.status;
-    if (prevStatus.current && prevStatus.current !== s) announceStatus(`Investigation is now ${statusLabel("investigation", s).toLowerCase()}.`);
+    // a recorded decision already announced itself ("Decision recorded…"); don't follow it with "now completed"
+    if (prevStatus.current && prevStatus.current !== s && !(s === "completed" && load.data.review))
+      announceStatus(s === "awaiting_review" ? "Investigation finished: the result is ready for review." : `Investigation is now ${statusLabel("investigation", s).toLowerCase()}.`);
     prevStatus.current = s;
     document.title = `Investigation ${load.data.id} · Data Reliability Copilot`;
   }, [load, notFound]);
@@ -50,9 +52,10 @@ export function InvestigationView({ inv, onChanged, updatedAt, showTitle = true 
   const d = inv.diagnosis;
   const known = new Set(inv.evidence.map((e) => e.id));
   const unsupported = new Set(inv.citation_report?.unsupported_facts ?? []);
-  const refs = (ids: string[]) => ids.map((id) => <EvidenceRef key={id} id={id} exists={known.has(id)} />);
+  const kinds = new Map(inv.evidence.map((e) => [e.id, humanize(e.kind)]));
+  const refs = (ids: string[]) => ids.map((id) => <EvidenceRef key={id} id={id} kind={kinds.get(id)} exists={known.has(id)} />);
   const active = ACTIVE_INVESTIGATION.has(inv.status);
-  const ended = !d && !active; // cancelled / failed: hide empty sections
+  const ended = !d && !active && !inv.evidence.length && !inv.tool_calls.length; // cancelled / failed with nothing collected: hide empty sections
 
   return (
     <>
@@ -155,7 +158,7 @@ export function InvestigationView({ inv, onChanged, updatedAt, showTitle = true 
                         {p.status === "validated" && <EpistemicTag kind="verified" />}
                         <Status entity="proposal" value={p.status} prefix="Recovery" />
                         {p.latest_validation_run_id && <a href={`#/validation-runs/${p.latest_validation_run_id}`}>View sandbox validation</a>}
-                        {p.status !== "validating" && p.status !== "approved" && p.status !== "rejected" && <ValidateButton proposalId={p.id} again={!!p.latest_validation_run_id} />}
+                        {!inv.review && p.status !== "validating" && p.status !== "approved" && p.status !== "rejected" && <ValidateButton proposalId={p.id} again={!!p.latest_validation_run_id} />}
                       </Group>
                     ))}
                   </>
@@ -189,13 +192,13 @@ export function InvestigationView({ inv, onChanged, updatedAt, showTitle = true 
         <Card title="Usage & limits">
           <dl className="kv">
             <dt>LLM calls</dt>
-            <dd>{inv.usage.llm_calls ?? (active ? "not started" : "—")}</dd>
+            <dd>{inv.usage.llm_calls ?? (active ? "counted when the run ends" : "—")}</dd>
             <dt>Tokens in / out</dt>
             <dd>{inv.usage.input_tokens ?? "unknown"} / {inv.usage.output_tokens ?? "unknown"}</dd>
             <dt>Cost</dt>
             <dd>{fmtCost(inv.usage.cost_usd, inv.usage.cost_status)}</dd>
             <dt>Tool calls</dt>
-            <dd>{inv.usage.tool_calls ?? (active ? "not started" : "—")}</dd>
+            <dd>{inv.usage.tool_calls ?? (inv.tool_calls.length ? `${inv.tool_calls.length} so far` : active ? "none yet" : "—")}</dd>
             <dt>Wall time</dt>
             <dd>{inv.usage.wall_ms != null ? fmtMs(inv.usage.wall_ms) : "—"}</dd>
             <dt>Limit reached</dt>
@@ -252,7 +255,7 @@ function NoDiagnosis({ inv, onChanged }: { inv: Investigation; onChanged?: () =>
         <Group gap="md" wrap="nowrap" align="flex-start" mb="md" role="status">
           <Loader type="dots" size="md" aria-hidden="true" />
           <Text>
-            {inv.status === "queued" ? "Queued — a worker will pick this up shortly." : "Running — collecting evidence and testing hypotheses."}{" "}
+            {inv.status === "queued" ? `Queued${inv.created_at ? ` for ${secondsSince(inv.created_at)}` : ""} — a worker will pick this up shortly.` : "Running — collecting evidence and testing hypotheses."}{" "}
             This page updates on its own; you can leave and come back.
           </Text>
         </Group>
@@ -265,6 +268,7 @@ function NoDiagnosis({ inv, onChanged }: { inv: Investigation; onChanged?: () =>
           confirm={{ title: "Cancel this investigation?", prompt: "It stops at its next step and cannot be resumed. You can start a new one from the incident.", confirmLabel: "Yes, cancel it" }}
           onAction={async () => {
             const r = await api<{ result: string }>(`/investigations/${inv.id}/cancel`, { method: "POST" });
+            sessionStorage.setItem("drc.focusCancelled", inv.id);
             announce(r.result === "cancelled" ? "Investigation cancelled." : "Cancellation requested; it stops at its next step.");
             onChanged?.();
           }}
@@ -274,7 +278,16 @@ function NoDiagnosis({ inv, onChanged }: { inv: Investigation; onChanged?: () =>
   if (inv.status === "cancelled") {
     const who = inv.cancel_requested_by?.actor ?? last?.actor;
     return (
-      <Alert color="gray" variant="light" radius="lg" icon={<IconPlayerStop size={20} />} title="Investigation cancelled" mb="lg" role="note">
+      <Alert
+        ref={(el) => {
+          // the Cancel button unmounted with the state change: put focus on the outcome instead of <body>
+          if (el && sessionStorage.getItem("drc.focusCancelled") === inv.id) {
+            sessionStorage.removeItem("drc.focusCancelled");
+            el.focus();
+          }
+        }}
+        tabIndex={-1}
+        color="gray" variant="light" radius="lg" icon={<IconPlayerStop size={20} />} title="Investigation cancelled" mb="lg" role="note">
         <Text size="sm" mb="xs">
           Cancelled{who ? <> at the request of <strong>{who.replace(/^dev:/, "")}</strong></> : null}
           {last ? <> · stopped {fmtTime(last.at)}</> : null}. No diagnosis was produced.
@@ -377,13 +390,23 @@ function ReviewCard({ inv, onChanged }: { inv: Investigation; onChanged?: () => 
 
   const proposal = inv.proposals[0];
   const validated = proposal?.status === "validated";
+  const validating = proposal?.status === "validating";
   const recoveryLine = !proposal ? (
     <Text size="sm" c="dimmed">No recovery was proposed for this diagnosis.</Text>
+  ) : validating ? (
+    <Alert color="blue" variant="light" radius="md" icon={<Loader size={16} />} p="sm" role="note">
+      <Text size="sm">Sandbox validation of <code>{proposal.playbook}</code> is in progress — wait for the result before deciding.{" "}
+        {proposal.latest_validation_run_id && <a href={`#/validation-runs/${proposal.latest_validation_run_id}`}>Follow the validation</a>}</Text>
+    </Alert>
   ) : validated ? (
     <Group gap="xs"><EpistemicTag kind="verified" /><Text size="sm">Recovery <code>{proposal.playbook}</code> passed sandbox validation. <a href={`#/validation-runs/${proposal.latest_validation_run_id}`}>See results</a></Text></Group>
   ) : (
     <Alert color="yellow" variant="light" radius="md" icon={<IconAlertTriangle size={18} />} p="sm" role="note">
-      <Text size="sm">Recovery <code>{proposal.playbook}</code> is <strong>{statusLabel("proposal", proposal.status).toLowerCase()}</strong> and has not passed sandbox validation. Consider validating it before approving.</Text>
+      <Text size="sm" mb="xs">Recovery <code>{proposal.playbook}</code> is <strong>{statusLabel("proposal", proposal.status).toLowerCase()}</strong> and has not passed sandbox validation. Validate it before approving.</Text>
+      <Group gap="sm">
+        <ValidateButton proposalId={proposal.id} again={!!proposal.latest_validation_run_id} />
+        {proposal.latest_validation_run_id && <a href={`#/validation-runs/${proposal.latest_validation_run_id}`}>See the last validation</a>}
+      </Group>
     </Alert>
   );
 
@@ -416,6 +439,8 @@ function ReviewCard({ inv, onChanged }: { inv: Investigation; onChanged?: () => 
                 busyLabel="Recording…"
                 variant="primary"
                 icon={<IconCircleCheck size={16} />}
+                precheck={() => { setNoteError(null); return true; }}
+                disabledReason={validating ? "Wait for the sandbox validation to finish" : undefined}
                 confirm={{
                   title: "Approve this diagnosis?",
                   prompt: <>{!validated && proposal ? "The proposed recovery has not passed sandbox validation. " : ""}The decision is recorded with your name{resolve ? " and the incident is marked resolved (it can be reopened)" : ""}. It cannot be undone.</>,
@@ -524,4 +549,9 @@ function EvidenceList({ evidence, active }: { evidence: Investigation["evidence"
       <Text size="xs" c="dimmed" mt="sm"><IconShieldCheck size={12} aria-hidden="true" /> Evidence ids are content-addressed: the same fact always has the same id.</Text>
     </Card>
   );
+}
+
+function secondsSince(iso: string) {
+  const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000)); // re-rendered by the 2 s polling
+  return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`;
 }

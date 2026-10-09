@@ -55,7 +55,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     if (res.status >= 502 && res.status <= 504) msg = "The API is not responding. Check that it is running, then retry.";
     else if (res.status === 403) msg = msg || "Your role is not allowed to do this.";
     else if (res.status === 404) msg = msg || "This item does not exist (it may have been removed, or the link is wrong).";
-    else if (res.status >= 500) msg = "The API failed while handling the request. Retry; if it keeps failing, check the API logs.";
+    else if (res.status >= 500) msg = "The server could not complete the request. Retry in a moment; if it keeps failing, tell the on-call data engineer (the details are in the server logs).";
     throw new ApiError(res.status, msg || `The request failed (HTTP ${res.status}).`);
   }
   return res.json() as Promise<T>;
@@ -113,11 +113,15 @@ export function useApi<T>(path: string, opts: { pollWhile?: (d: T) => boolean; i
 
 let lastUserAnnouncement = 0;
 
-/** Announcement of a background status change; skipped right after a user-triggered announcement so the confirmation
- *  of the user's own action ("Decision recorded…") is not overwritten by the status poll that follows it. */
+let pendingStatus: ReturnType<typeof setTimeout> | undefined;
+
+/** Announcement of a background status change. Right after a user-triggered announcement it waits (never dropped) so the
+ *  confirmation of the user's own action is read first; a newer status message replaces a waiting one. */
 export function announceStatus(message: string) {
-  if (Date.now() - lastUserAnnouncement < 5000) return;
-  announce(message, false);
+  clearTimeout(pendingStatus);
+  const wait = 5000 - (Date.now() - lastUserAnnouncement);
+  if (wait <= 0) announce(message, false);
+  else pendingStatus = setTimeout(() => announce(message, false), wait);
 }
 
 /** Polite screen-reader announcement through the app-level live region (#announcer). */
