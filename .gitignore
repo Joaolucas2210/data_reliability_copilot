@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+var/
+mlruns/
+.env
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+web/node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/

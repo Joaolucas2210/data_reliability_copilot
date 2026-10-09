@@ -1,0 +1,68 @@
+[project]
+name = "drc"
+version = "0.1.0"
+description = "Data Reliability Copilot — foundation and first vertical slice"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "dbt-core==1.12.5",
+  "dbt-postgres==1.11.0",
+  "elementary-data==0.26.0",
+  "openlineage-dbt==1.53.0",
+  "openlineage-python==1.53.0",
+  "langgraph==1.2.14",
+  "langgraph-checkpoint-postgres==3.1.2",
+  "psycopg[binary,pool]==3.3.6",
+  "fastapi==0.143.0",
+  "uvicorn==0.54.0",
+  "pydantic==2.14.0",
+  "faker==40.41.0",
+  "mlflow==3.17.0",
+  "opentelemetry-sdk==1.45.1",
+  "opentelemetry-exporter-otlp-proto-http==1.45.1",
+  "anthropic==1.12.1",
+  "sqlglot==30.21.0",
+  "httpx==0.28.1",
+  "pyyaml>=6",
+]
+
+[project.scripts]
+drc = "drc.cli:main"
+
+[dependency-groups]
+dev = ["ruff==0.16.10", "mypy==2.4.0", "pytest==9.1.1", "types-PyYAML", "pip-audit"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/drc"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "SIM"]
+ignore = [
+  "S101",  # asserts in tests/self-checks
+  "S608",  # SQL built only from allow-listed identifiers (tools.py, quality.py)
+  "E501",  # formatter owns line length; long SQL/string literals allowed
+  "B008",  # FastAPI Depends() in defaults is the framework idiom
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/drc/synth.py" = ["S311"]  # seeded PRNG for reproducible synthetic data, not crypto
+"src/drc/pipeline.py" = ["S603", "S404"]  # fixed argv lists, no shell
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = true
+# DB rows are dicts whose shape is fixed by migrations; `fetchone()` None-ness is handled by logic/asserts.
+# Relaxing these two codes avoids ~50 `assert row` lines that add no safety. Revisit with typed row models.
+disable_error_code = ["index", "union-attr"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: needs docker compose postgres running"]

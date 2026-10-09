@@ -1,0 +1,7 @@
+# Normalise line endings (WSL/Windows/macOS contributors); scripts must stay LF.
+* text=auto eol=lf
+*.png binary
+# Generated lockfiles: collapsed in diffs/PR views, still versioned for reproducible installs.
+uv.lock linguist-generated=true
+web/package-lock.json linguist-generated=true
+**/.terraform.lock.hcl linguist-generated=true
