@@ -1,5 +1,8 @@
 # Data Reliability Copilot
 
+[![CI](https://github.com/Joaolucas2210/data_reliability_copilot/actions/workflows/ci.yml/badge.svg)](https://github.com/Joaolucas2210/data_reliability_copilot/actions/workflows/ci.yml)
+[![Terraform](https://github.com/Joaolucas2210/data_reliability_copilot/actions/workflows/terraform.yml/badge.svg)](https://github.com/Joaolucas2210/data_reliability_copilot/actions/workflows/terraform.yml)
+
 Investigates data-pipeline incidents — including the case where **the pipeline succeeds but the report is wrong** —
 on a fictional consumer-finance operation with synthetic customers, contracts, installments and payments.
 
@@ -7,10 +10,31 @@ on a fictional consumer-finance operation with synthetic customers, contracts, i
 is checked programmatically; the agent abstains when evidence is insufficient; recovery runs only in an
 isolated, verified sandbox; nothing is applied to production in this phase.
 
-> Phase 1 = foundation + one vertical slice. The live-LLM path is implemented but **has not been evaluated**
-> (no credentials in the build session); all numbers in this repo come from a deterministic fake LLM unless
-> labelled otherwise. See the [phase-1](docs/report/phase-1-report.md) and [phase-2](docs/report/phase-2-report.md)
-> reports for what is implemented, simulated, validated and pending.
+## Principles
+
+| Boundary | Responsibility |
+|---|---|
+| Rules | Detect failures, including business invariants when dbt succeeds. |
+| Agent | Investigate with bounded, read-only tools; propose or abstain. |
+| Citations | Enforce evidence existence and literal quotes programmatically. |
+| Recovery | Validate allow-listed playbooks in a separate DB and role; fail closed. |
+| Human | Approve or reject; production remediation remains a human action. |
+
+## Architecture
+
+```mermaid
+flowchart LR
+  pipeline[dbt + OpenLineage] --> rules[Quality rules]
+  rules --> incident[(App DB / incidents)]
+  incident --> agent[LangGraph agent / worker]
+  agent --> tools[Bounded read-only tools / run snapshots]
+  agent --> citations[Citation enforcement]
+  citations --> human[Human review]
+  agent --> sandbox[Allow-listed recovery / isolated DB]
+  sandbox --> human
+```
+
+See the [full component and deployment diagrams](docs/architecture/overview.md).
 
 ## Quickstart
 
@@ -21,7 +45,7 @@ make demo      # Postgres → synthetic data with a duplicated batch → dbt (+O
 make api & make web   # UI at http://127.0.0.1:5173 (link printed by make demo)
 make test      # unit + integration
 make eval      # benchmark (dev split); make eval-final for the held-out split
-make destroy   # remove containers, volume and var/
+
 ```
 
 Details, profiles (Marquez, Jaeger) and resource use: [local runbook](docs/operations/local-runbook.md).
@@ -40,11 +64,46 @@ Details, profiles (Marquez, Jaeger) and resource use: [local runbook](docs/opera
 | `tests/` | unit + integration (isolation, resume, idempotency, leakage, authz, snapshots, cancel, lease, retention) |
 | `docs/` | [spec](docs/product/spec.md) · [architecture](docs/architecture/overview.md) · [domain](docs/architecture/domain-model.md) · [reliability](docs/architecture/reliability.md) · [agent](docs/architecture/agent.md) · [quality & lineage](docs/architecture/quality-and-lineage.md) · [recovery](docs/architecture/recovery.md) · [API](docs/architecture/api-contract.md) · [benchmark](docs/benchmark/README.md) · [design system](docs/design-system/README.md) · [multicloud](docs/multicloud/equivalence-matrix.md) · [ADRs](docs/adr/README.md) · [SLOs & runbooks](docs/operations/slos-and-runbooks.md) · [sources](docs/sources.md) · [report](docs/report/phase-1-report.md) |
 
-## Stack (pinned; see [sources](docs/sources.md))
+## Stack (pinned; [sources and verification](docs/sources.md))
 
-Python 3.12 · PostgreSQL 17 · dbt-core 1.12.5 + dbt-postgres 1.11.0 · Elementary OSS 0.26.0 · OpenLineage 1.53.0 +
-Marquez 0.51.1 · LangGraph 1.2.14 (Postgres checkpoints) · FastAPI · React 19 + TypeScript 7 + Vite 8 · MLflow 3.17 ·
-OpenTelemetry 1.45 · Docker Compose · Terraform 1.16 (azurerm 5.9 / aws 6.68 / google 8.6).
+| Layer | Version |
+|---|---|
+| Runtime / database | Python 3.12.14 / PostgreSQL 17.11 |
+| Transformations | dbt-core 1.12.5 / dbt-postgres 1.11.0 / Elementary 0.26.0 |
+| Lineage | OpenLineage 1.53.0 / Marquez 0.51.1 |
+| Investigation | LangGraph 1.2.14 / checkpoint-postgres 3.1.2 / Anthropic SDK 1.12.1 |
+| API / evaluation | FastAPI 0.143.0 / MLflow 3.17.0 / OpenTelemetry 1.45.1 |
+| UI | React 19.3.0 / TypeScript 7.0.2 / Vite 8.3.4 |
+| Infrastructure | Terraform 1.16.5 / azurerm 5.9.0 / aws 6.68.0 / google 8.6.0 |
+
+## Results
+
+**Agent accuracy numbers below use the deterministic fake LLM (fake-v2) unless labelled LIVE.
+Live evaluation is implemented but requires ANTHROPIC_API_KEY.**
+
+Historical [phase-2 evidence](docs/evidence/phase-2/) (10 dev / 9 final scenarios):
+
+| System | FAKE dev exact cause-set accuracy | FAKE final accuracy | LIVE |
+|---|---|---|---|
+| A rules | 0.50 | 0.556 | Not run |
+| B summary-only | 0.50 | 0.556 | Not run |
+| C agent + tools | 1.00 | 1.00 | Not run |
+
+The fake policy tests machinery and held-out variants, not live model quality. Phase 2's final detection
+rate was 8/9 due to a subsequently corrected SCH-02 ground truth; the original result is preserved.
+Quote matching does not prove entailment. The optional groundedness judge has separate structural FAKE
+and semantic LIVE modes; exact cause-set scoring remains authoritative.
+See the [LIVE results template](docs/evidence/live/RESULTS_TEMPLATE.md) and [protocol](docs/benchmark/live-eval-checklist.md).
+
+## Phase status
+
+| Phase | Status |
+|---|---|
+| [Phase 1](docs/report/phase-1-report.md) | Foundation, vertical slice, isolated recovery; fake evaluation. |
+| [Phase 2](docs/report/phase-2-report.md) | Snapshots, 19 executable scenarios, cancellation, leases and retention; fake evaluation. |
+| Next | Phase 3 closes fingerprint/judge/packaging gaps; live measurement and human calibration await credentials. |
+
+[ADRs](docs/adr/README.md) · [Local runbook](docs/operations/local-runbook.md) · [3–4 minute demo](docs/demo/SCRIPT.md)
 
 ## Checks
 
