@@ -68,7 +68,8 @@ logged as a JSON line with the trace id.
    outcome left with no supported fact or no supported hypothesis becomes `abstained`; a recovery citing
    missing evidence is dropped.
 4. **What this does not prove:** that the statement follows from the quote. That needs human review or a
-   judge with documented limits (planned, ADR-0008).
+   evaluation-only judge with documented limits ([judge-v1](../benchmark/judge-rubric.md), ADR-0008).
+   FAKE judging checks literal structure; semantic LIVE judging and human calibration are not yet measured.
 
 ## Untrusted content and prompt injection
 

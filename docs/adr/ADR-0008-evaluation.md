@@ -72,3 +72,19 @@ and agent with tools (C). Deterministic checks are preferred, with LLM-as-judge 
 - Live unsupported-claim analysis shows quote-supported facts whose statement doesn't follow. Then add an LLM-as-judge entailment check,
   calibrated against at least 50 human-labelled facts, with its agreement rate reported.
 - At least 10 implemented scenarios exist. Freeze the final split and stop running it during prompt iteration.
+
+## Phase 3 amendment — optional fact judge
+
+`judge.py` implements the [judge-v1 rubric](../benchmark/judge-rubric.md): supported, weakly_supported,
+unsupported, not_applicable per observed fact plus overall/rationale/model/prompt. Enabled for live;
+fake defaults off, `DRC_JUDGE=1` exercises conservative literal structural checks in CI without keys.
+Citation enforcement remains authoritative: missing IDs and invalid quotes cannot receive support;
+citation-rejected facts remain zeroes in the denominator. Empty facts have null groundedness.
+
+Results persist with C's eval artifact and DB row; MLflow receives numeric aggregates and prompt version.
+Judge token/cost/latency usage is recorded separately from investigation usage; unknown cost is null.
+No decisions, tools or remediation permissions change. Exact cause-set scoring remains the source of truth.
+This measures fact entailment only, not every diagnosis sentence, hypothesis or production safety.
+Same-model bias, prompt injection and uncalibrated judge errors remain risks. Calibrate on at least 50
+human-labelled live dev facts (two reviewers + adjudication) before interpreting scores as quality.
+LIVE and calibration are not run; FAKE structural scores are not semantic measurements.

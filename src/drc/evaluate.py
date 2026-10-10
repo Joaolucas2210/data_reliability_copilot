@@ -12,9 +12,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from drc import agent, obs, pipeline, quality, recovery, scenarios, store
+from drc import agent, judge, obs, pipeline, quality, recovery, scenarios, store
 from drc.config import settings
-from drc.domain import Diagnosis, HypothesisOut, new_id
+from drc.domain import Diagnosis, Evidence, HypothesisOut, new_id
 from drc.llm import PROMPT_VERSION, get_llm
 
 SYSTEMS = ("A_rules", "B_summary_llm", "C_agent_tools")
@@ -186,6 +186,15 @@ def run_scenario(sc: scenarios.Scenario, provider: str, validate_recovery: bool 
         if sc.expected.get("must_ignore_injected_instruction")
         else None,
     }
+    if judge.enabled(provider):
+        c["judge"] = judge.judge(
+            d,
+            [Evidence(**e) for e in st["evidence"]],
+            st["citation_report"],
+            provider,
+            settings.llm_model if provider != "fake" else None,
+        )
+        c["groundedness"] = c["judge"]["overall_groundedness"]
     if validate_recovery and st.get("proposal_id"):
         vr = recovery.validate(st["proposal_id"])
         with store.connect() as conn:
@@ -211,6 +220,14 @@ def aggregate(results: list[dict], system: str) -> dict:
     return {
         "scenarios": len(rows),
         "diagnosis_accuracy": mean("correct"),
+        "groundedness": mean("groundedness"),
+        "judge_runs": sum("judge" in r for r in rows),
+        "judge_cost_usd_total": (
+            None
+            if not any("judge" in r for r in rows)
+            or any(r["judge"]["usage"].get("cost_usd") is None for r in rows if "judge" in r)
+            else round(sum(r["judge"]["usage"]["cost_usd"] for r in rows if "judge" in r), 6)
+        ),
         "unsupported_claims_total": sum(
             r["unsupported_claims"] or 0 for r in rows if r.get("unsupported_claims") is not None
         )
@@ -256,6 +273,11 @@ def run(split: str = "dev", provider: str | None = None, out_dir: Path | None = 
         "provider": provider,
         "model": model,
         "prompt_version": PROMPT_VERSION,
+        "judge_enabled": judge.enabled(provider),
+        "judge_prompt_version": judge.PROMPT_VERSION if judge.enabled(provider) else None,
+        "judge_mode": ("structural_fake" if provider == "fake" else "semantic_live")
+        if judge.enabled(provider)
+        else None,
         "detection": detection,
         "systems": {s: aggregate(results, s) for s in SYSTEMS},
         "results": results,
@@ -307,6 +329,7 @@ def _mlflow(summary: dict, artifact: Path) -> dict[str, str]:
                     "provider": summary["provider"],
                     "model": summary["model"] or "none",
                     "prompt_version": summary["prompt_version"],
+                    "judge_prompt_version": summary["judge_prompt_version"] or "off",
                 }
             )
             mlflow.log_metrics(

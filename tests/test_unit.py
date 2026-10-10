@@ -195,3 +195,65 @@ def test_fingerprint_separates_model_changes_and_dates():
     assert loss == fp(list(reversed(checks)), {"report": "original"}, ["2026-09-28"])
     assert loss != fp(checks, {"report": "changed"}, ["2026-09-28"])
     assert loss != fp(checks, {"report": "original"}, ["2026-09-29"])
+
+
+def test_fake_judge_literal_support_missing_id_and_unsupported():
+    from drc import judge
+
+    ev = [_ev("ev_1", "rows=14")]
+    d = Diagnosis(
+        outcome="abstained",
+        hypotheses=[],
+        summary="",
+        estimated_scope="",
+        next_step="",
+        observed_facts=[Fact(statement="rows=14", evidence_ids=["ev_1"], quote="rows=14")],
+    )
+    report = {"unsupported_facts": [], "missing_ids": []}
+    assert judge.judge(d, ev, report, "fake")["overall_groundedness"] == 1
+    d.observed_facts[0].statement = "rows=999"
+    assert judge.judge(d, ev, report, "fake")["overall_groundedness"] == 0
+    d.observed_facts[0].evidence_ids = ["ev_missing"]
+    assert judge.judge(d, ev, report, "fake")["facts"][0]["score"] == "unsupported"
+    d.observed_facts = []
+    assert judge.judge(d, ev, report, "fake")["overall_groundedness"] is None
+    assert judge.judge(d, ev, {"unsupported_facts": ["rejected"]}, "fake")["overall_groundedness"] == 0
+
+
+def test_judge_opt_in(monkeypatch):
+    from drc import judge
+
+    monkeypatch.delenv("DRC_JUDGE", raising=False)
+    assert not judge.enabled("fake") and judge.enabled("anthropic")
+    monkeypatch.setenv("DRC_JUDGE", "1")
+    assert judge.enabled("fake")
+
+
+def test_live_judge_cannot_override_missing_evidence(monkeypatch):
+    from drc import judge
+
+    class Stub:
+        def complete(self, task, system, user, schema, context):
+            assert "UNTRUSTED" in system and "UNTRUSTED INPUT JSON" in user
+            return llm.LLMResult(
+                judge.Judgment(
+                    facts=[judge.FactScore(fact_index=0, score="supported", rationale="stub")],
+                    rationale="stub",
+                ),
+                "anthropic",
+                "stub",
+                {"cost_usd": None, "cost_status": "unknown"},
+            )
+
+    monkeypatch.setattr(judge, "get_llm", lambda *args: Stub())
+    d = Diagnosis(
+        outcome="abstained",
+        hypotheses=[],
+        summary="",
+        estimated_scope="",
+        next_step="",
+        observed_facts=[Fact(statement="rows=14", evidence_ids=["missing"], quote="rows=14")],
+    )
+    result = judge.judge(d, [_ev("ev_1", "rows=14")], {}, "anthropic", "stub")
+    assert result["overall_groundedness"] == 0
+    assert result["usage"]["cost_usd"] is None
