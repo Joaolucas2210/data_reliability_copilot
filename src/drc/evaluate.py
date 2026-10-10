@@ -256,6 +256,8 @@ def aggregate(results: list[dict], system: str) -> dict:
 def run(split: str = "dev", provider: str | None = None, out_dir: Path | None = None) -> dict:
     provider = provider or settings.llm_provider
     model = None if provider == "fake" else settings.llm_model
+    if provider != "fake":
+        get_llm(provider, model)  # validate credentials/provider before mutating benchmark state
     selected = [s for s in scenarios.load_all() if s.implemented and (split == "all" or s.split == split)]
     with obs.tracer.start_as_current_span("eval.run", attributes={"split": split, "provider": provider}):
         # a clean run first, so "last known-good run" exists for model-change comparisons (as in production)

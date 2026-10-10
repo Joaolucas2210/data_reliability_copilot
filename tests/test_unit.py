@@ -257,3 +257,15 @@ def test_live_judge_cannot_override_missing_evidence(monkeypatch):
     result = judge.judge(d, [_ev("ev_1", "rows=14")], {}, "anthropic", "stub")
     assert result["overall_groundedness"] == 0
     assert result["usage"]["cost_usd"] is None
+
+
+def test_live_eval_validates_provider_before_pipeline(monkeypatch):
+    from drc import evaluate
+
+    def unavailable(*args):
+        raise ValueError("credentials unavailable")
+
+    monkeypatch.setattr(evaluate, "get_llm", unavailable)
+    monkeypatch.setattr(evaluate.pipeline, "execute", lambda *args: pytest.fail("pipeline ran"))
+    with pytest.raises(ValueError, match="credentials"):
+        evaluate.run(provider="anthropic")
