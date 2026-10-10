@@ -54,7 +54,7 @@ Details, profiles (Marquez, Jaeger) and resource use: [local runbook](docs/opera
 
 | Path | What |
 |---|---|
-| `src/drc/` | modular monolith: `synth` `scenarios` `pipeline` `quality` `tools` `agent` `citations` `llm` `fake_llm` `recovery` `evaluate` `store` `domain` `obs` `api` `worker` `cli` |
+| `src/drc/` | modular monolith: `synth` `scenarios` `pipeline` `quality` `tools` `agent` `citations` `llm` `fake_llm` `recovery` `evaluate` `judge` `store` `domain` `obs` `api` `worker` `cli` |
 | `dbt/` | dbt project (staging → marts → `rpt_daily_collections`), contracts, tests, freshness, Elementary |
 | `benchmark/scenarios/catalog.yaml` | 24 scenarios with ground truth (19 executable: 10 dev, 9 held-out final) |
 | `recovery/playbooks/` | allow-listed recovery playbooks (`dedupe_payments`) |
@@ -68,7 +68,7 @@ Details, profiles (Marquez, Jaeger) and resource use: [local runbook](docs/opera
 
 | Layer | Version |
 |---|---|
-| Runtime / database | Python 3.12.14 / PostgreSQL 17.11 |
+| Runtime / database | Python 3.12 (patch version selected by uv) / PostgreSQL 17.11 |
 | Transformations | dbt-core 1.12.5 / dbt-postgres 1.11.0 / Elementary 0.26.0 |
 | Lineage | OpenLineage 1.53.0 / Marquez 0.51.1 |
 | Investigation | LangGraph 1.2.14 / checkpoint-postgres 3.1.2 / Anthropic SDK 1.12.1 |
@@ -81,7 +81,8 @@ Details, profiles (Marquez, Jaeger) and resource use: [local runbook](docs/opera
 **Agent accuracy numbers below use the deterministic fake LLM (fake-v2) unless labelled LIVE.
 Live evaluation is implemented but requires ANTHROPIC_API_KEY.**
 
-Historical [phase-2 evidence](docs/evidence/phase-2/) (10 dev / 9 final scenarios):
+Historical [phase-2 evidence](docs/evidence/phase-2/) (10 dev / 9 final scenarios);
+[phase-3 measurements](docs/report/phase-3-report.md) preserve the same frozen policy and add structural judging:
 
 | System | FAKE dev exact cause-set accuracy | FAKE final accuracy | LIVE |
 |---|---|---|---|
@@ -101,7 +102,8 @@ See the [LIVE results template](docs/evidence/live/RESULTS_TEMPLATE.md) and [pro
 |---|---|
 | [Phase 1](docs/report/phase-1-report.md) | Foundation, vertical slice, isolated recovery; fake evaluation. |
 | [Phase 2](docs/report/phase-2-report.md) | Snapshots, 19 executable scenarios, cancellation, leases and retention; fake evaluation. |
-| Next | Phase 3 closes fingerprint/judge/packaging gaps; live measurement and human calibration await credentials. |
+| [Phase 3](docs/report/phase-3-report.md) | Portfolio packaging, incident signatures, optional fact judge; fake dev/final validation. |
+| Next | LIVE measurement and human judge calibration await credentials; cloud remains unapplied. |
 
 [ADRs](docs/adr/README.md) · [Local runbook](docs/operations/local-runbook.md) · [3–4 minute demo](docs/demo/SCRIPT.md)
 

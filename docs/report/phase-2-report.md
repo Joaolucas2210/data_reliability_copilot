@@ -1,5 +1,8 @@
 # Phase 2 report — time-consistent evidence, 19 executable scenarios, operations
 
+This is the historical phase-2 record. Follow-up fixes and new measurements are in the
+[phase-3 report](phase-3-report.md); original negative results below are preserved.
+
 Date: 2026-10-09. Starting point: `phase-1-report.md` backlog. Backlog item 1 (live-LLM evaluation) is still **blocked**:
 no `ANTHROPIC_API_KEY` and no `ant` CLI in the environment. Everything below was done without a live model.
 

@@ -14,7 +14,7 @@ One Postgres server hosts separate databases with separate roles; nothing shares
 | Incidents & evidence | `domain.py`, `store.py`, `tools.py` | `incident`, `evidence`, `tool_call`, `audit_event` | app DB as `app` |
 | Investigation | `agent.py`, `citations.py`, `llm.py`, `fake_llm.py` | `investigation`, `hypothesis`, LangGraph checkpoints | tools (never SQL/shell directly) |
 | Isolated recovery | `recovery.py`, `recovery/playbooks/` | `remediation_proposal`, `validation_run`, `sandbox_*` DBs | sandbox DB as `sandbox_rw` |
-| Evaluation | `evaluate.py`, `benchmark/` | `eval_run`, MLflow runs | everything above, as a harness |
+| Evaluation | `evaluate.py`, `judge.py`, `benchmark/` | `eval_run`, MLflow runs | everything above, as a harness |
 | Audit & observability | `obs.py`, `store.audit` | spans, JSON logs, audit trail | OTLP collector (optional) |
 | API & UI | `api.py`, `cli.py`, `worker.py`, `web/` | HTTP contract, job queue | app DB |
 
@@ -64,6 +64,8 @@ flowchart TB
   agent --> app[(app DB: incidents, evidence, audit, checkpoints)]
   api --> app
   evaluate[evaluate.py] --> mlflow[(MLflow sqlite)]
+  evaluate -->|optional| judge[judge.py fact judge]
+  judge -->|LIVE only| llm
   dbt -->|dbt_prod| wh
   dbt -->|events| marquez[Marquez]
 ```

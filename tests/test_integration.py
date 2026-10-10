@@ -271,3 +271,91 @@ def test_distinct_causes_with_same_checks_do_not_merge():
         assert names(loss_run) == names(trf_run)
     assert quality.detect(loss_run) == loss
     assert quality.detect(trf_run) == trf
+
+
+def test_eval_fake_judge_wiring_on_existing_snapshot(latest, monkeypatch):
+    from drc import evaluate, scenarios
+
+    run = latest["last_pipeline_run_id"]
+    inc = quality.report_manual(run, "rpt_daily_collections", "pytest judge structural path")
+    # Reuse frozen data while preserving a fresh incident; no extra pipeline needed for judge wiring.
+    monkeypatch.setattr(evaluate, "_dismiss_open", lambda: None)
+    monkeypatch.setattr(evaluate.pipeline, "execute", lambda *args: run)
+    monkeypatch.setattr(evaluate.quality, "detect", lambda *args: inc)
+    monkeypatch.setenv("DRC_JUDGE", "1")
+    sc = next(s for s in scenarios.load_all() if s.id == "DUP-01")
+    result = evaluate.run_scenario(sc, "fake", validate_recovery=False)
+    measured = result["systems"]["C_agent_tools"]
+    assert measured["judge"]["mode"] == "structural_fake"
+    assert measured["judge"]["prompt_version"] == "judge-v1"
+    assert measured["judge"]["usage"]["cost_usd"] is None
+    assert evaluate.aggregate([result], "C_agent_tools")["judge_runs"] == 1
+    assert measured["injected_instruction_followed"] == (
+        measured["got"] == "no_fault_found"
+    )  # same proxy for fake and live providers
+
+
+def test_heartbeat_stops_after_lease_ownership_changes(monkeypatch):
+    import threading
+
+    from drc import worker
+    from drc.domain import new_id
+
+    job = worker.enqueue("noop", {}, new_id("test_lease"))
+    with store.connect() as c:
+        c.execute(
+            "update job set status='running', locked_by='other-worker', "
+            "locked_at=now() - interval '1 hour' where id=%s",
+            (job,),
+        )
+    monkeypatch.setattr(worker, "HEARTBEAT_S", 0.01)
+    stop = threading.Event()
+    thread = threading.Thread(target=worker._heartbeat, args=(job, stop))
+    thread.start()
+    try:
+        thread.join(timeout=2)
+        assert not thread.is_alive()
+        with store.connect() as c:
+            row = c.execute(
+                "select heartbeat_at, locked_at < now() - interval '120 seconds' expired "
+                "from job where id=%s",
+                (job,),
+            ).fetchone()
+        assert row["heartbeat_at"] is None and row["expired"]
+    finally:
+        stop.set()
+        thread.join(timeout=2)
+        with store.connect() as c:
+            c.execute("update job set status='done' where id=%s", (job,))
+
+
+def test_recovery_isolation_failure_refuses_snapshot_and_cleans_sandbox(monkeypatch):
+    from drc.domain import new_id
+
+    proposal = new_id("prop")
+    with store.connect() as c:
+        inserted = c.execute(
+            "insert into remediation_proposal(id,investigation_id,playbook,rationale,evidence_ids,status,created_at) "
+            "select %s, investigation_id,playbook,'pytest fail closed',evidence_ids,'proposed',now() "
+            "from remediation_proposal order by created_at desc limit 1 returning id",
+            (proposal,),
+        ).fetchone()
+    assert inserted, "make demo must create a recovery proposal"
+    monkeypatch.setattr(
+        recovery,
+        "isolation_checks",
+        lambda *args: [{"name": "simulated_denial_failure", "passed": False, "detail": "pytest"}],
+    )
+    monkeypatch.setattr(recovery, "snapshot", lambda *args: pytest.fail("snapshot must not run"))
+    validation = recovery.validate(proposal)
+    with store.connect() as c:
+        row = c.execute(
+            "select status,error,cleaned_up_at,steps,sandbox_db from validation_run where id=%s",
+            (validation,),
+        ).fetchone()
+    assert row["status"] == "error" and "isolation checks failed" in row["error"]
+    assert row["cleaned_up_at"] is not None and row["steps"] == []
+    with recovery._admin() as c:
+        assert (
+            c.execute("select 1 from pg_database where datname=%s", (row["sandbox_db"],)).fetchone() is None
+        )

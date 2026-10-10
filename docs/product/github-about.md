@@ -1,6 +1,6 @@
 # Suggested GitHub metadata
 
-Description (149 characters):
+Description (152 characters):
 > Data reliability copilot: rules detect silent pipeline failures, a grounded agent investigates, humans decide, and recovery validates in an isolated DB.
 
 Topics: `data-quality`, `data-reliability`, `langgraph`, `dbt`, `openlineage`,

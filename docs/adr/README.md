@@ -20,5 +20,4 @@ Each ADR states context, alternatives, decision, trade-offs, risks, evidence and
 | [0013](ADR-0013-authn-authz.md) | Dev-only header roles now; Entra ID before any cloud exposure | Accepted (blocks cloud exposure) |
 | [0014](ADR-0014-per-run-snapshots.md) | Per-run warehouse snapshots and per-run project copies | Accepted (phase 2) |
 | [0015](ADR-0015-mantine-ui-library.md) | Mantine component library, dark mode, validated chart palette | Accepted (UX round 3) |
-
 | [0016](ADR-0016-incident-fingerprint.md) | Cause-discriminating incident signatures | Accepted (phase 3) |
