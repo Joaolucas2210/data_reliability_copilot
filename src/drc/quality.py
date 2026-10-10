@@ -7,12 +7,14 @@
 Rules detect; the agent never decides whether an incident exists (ADR-0004).
 """
 
+import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import psycopg
+from psycopg import sql
 
 from drc import obs, store
 from drc.config import settings
@@ -186,13 +188,53 @@ def incident_title(check_names: list[str]) -> str:
     return f"{'; '.join(phrases[:2])} ({n} failing check{'' if n == 1 else 's'})"
 
 
+def fingerprint_signature(check_names: list[str], models: dict[str, str], dates: list[str]) -> str:
+    payload = {"checks": sorted(set(check_names)), "models": models, "dates": sorted(set(dates))}
+    digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+    return "finance_daily:v2:" + digest
+
+
+def incident_fingerprint(conn: psycopg.Connection[Any], run_id: str, names: list[str]) -> str:
+    run = conn.execute(
+        "select artifacts_dir, snapshot_schema from pipeline_run where id=%s", (run_id,)
+    ).fetchone()
+    assert run, run_id
+    manifest = _load(Path(run["artifacts_dir"]) / "dbt_run/target/manifest.json")
+    models = {
+        k: n["checksum"]["checksum"]
+        for k, n in (manifest or {}).get("nodes", {}).items()
+        if k.startswith("model.drc_finance.")
+    }
+    # Missing artifacts/snapshot cannot safely establish equivalence across runs.
+    if not models or not run["snapshot_schema"]:
+        return fingerprint_signature(names, models, ["unknown:" + run_id])
+    try:
+        with psycopg.connect(settings.warehouse_ro_dsn) as wh:
+            wh.read_only = True
+            dates = wh.execute(
+                sql.SQL(
+                    "select business_date from {}.marts__rpt_daily_collections r "
+                    "full join {}.ops__control_totals c using (business_date) "
+                    "where r.collected_amount is distinct from c.collected_amount "
+                    "or r.payments_count is distinct from c.payments_count "
+                    "order by business_date limit 1001"
+                ).format(sql.Identifier(run["snapshot_schema"]), sql.Identifier(run["snapshot_schema"]))
+            ).fetchall()
+        # shortcut: cap date signatures at 1000, use per-run identity beyond that until selective snapshots.
+        date_keys = [str(d[0]) for d in dates] if len(dates) <= 1000 else ["overflow:" + run_id]
+    except psycopg.Error:
+        date_keys = ["unavailable:" + run_id]
+    return fingerprint_signature(names, models, date_keys)
+
+
 def _open_incident(conn: psycopg.Connection[Any], run_id: str, failing: list[dict]) -> str:
-    # ponytail: fingerprint = pipeline + sorted failing check names; per-dataset grouping when incidents get noisy
     names = [f["check_name"] for f in failing]
-    fingerprint = "finance_daily:" + ",".join(names)
+    fingerprint = incident_fingerprint(conn, run_id, names)
     # re-detecting the same run (retry/replay) must not open or bump anything, whatever the incident status
     same_run = conn.execute(
-        "select id from incident where fingerprint=%s and last_pipeline_run_id=%s", (fingerprint, run_id)
+        "select i.id from incident i join incident_check ic on ic.incident_id=i.id "
+        "join quality_check_result q on q.id=ic.check_id where q.pipeline_run_id=%s limit 1",
+        (run_id,),
     ).fetchone()
     if same_run:
         return same_run["id"]

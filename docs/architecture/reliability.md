@@ -59,7 +59,18 @@ Exhausting an agent limit yields an **abstention** with the limit named, never a
 - **Known limit:** pipeline runs share the `warehouse` raw/ops schemas — two concurrent pipeline runs would
   interfere. Phase 1 assumes one pipeline run at a time (the benchmark is sequential).
 - **Fixed in phase 2 (ADR-0014):** tools used to read the *current* warehouse. Each run now freezes its state into `snap_<run_id>`; tools and recovery read that snapshot.
-- **Known limit:** incidents are deduplicated by a fingerprint of failing-check names. Two different causes with the same failing checks (e.g. LOSS-01 and TRF-01: only the reconciliations fail) are merged into one incident whose `last_pipeline_run_id` moves to the newer run. Acceptable for consecutive daily runs; wrong when causes differ. Candidate fix: include the cause-relevant signature (affected dates, changed models) in the fingerprint.
+- **Phase 3 fingerprint v2:** SHA-256 of canonical JSON containing sorted failing check names,
+  all project-model code checksums from the run manifest, and sorted business dates whose amount/count
+  differs from control totals in the run snapshot. Full checksums distinguish changed transformations
+  without recomputing a last-known-good comparison on retry. Run IDs, timestamps and transient batch tags
+  are excluded when signals exist. Missing artifacts/snapshot, unreadable report or >1000 affected dates
+  use a per-run sentinel, conservatively preventing cross-run merging. Original run→incident check links
+  preserve replay identity after recurrence or version upgrades. No cause label or catalog ground truth is used.
+  See [ADR-0016](../adr/ADR-0016-incident-fingerprint.md).
+- **Residual limit:** different ingestion mechanisms with identical checks, model code and affected dates
+  can still merge. The fingerprint is an observed signature, not a diagnosis; model comment changes can
+  conversely split equivalent incidents. Existing incidents are not rewritten by the v2 change.
+
 
 ## Backup and restore
 

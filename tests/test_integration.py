@@ -242,3 +242,32 @@ def test_prune_protects_runs_of_open_incidents():
         }
     assert open_runs <= set(report["protected_runs"])
     assert not (open_runs & set(report["run_dirs_removed"]))
+
+
+def test_distinct_causes_with_same_checks_do_not_merge():
+    from drc import evaluate, pipeline
+
+    # Same eval baseline and app DB, but deliberately leave LOSS open across TRF.
+    evaluate._dismiss_open()
+    baseline = pipeline.execute(None, 42, "none")
+    assert quality.detect(baseline) is None
+    loss_run = pipeline.execute("LOSS-01")
+    loss = quality.detect(loss_run)
+    trf_run = pipeline.execute("TRF-01")
+    trf = quality.detect(trf_run)
+    assert loss and trf and loss != trf
+    with store.connect() as c:
+
+        def names(run):
+            return {
+                r["check_name"]
+                for r in c.execute(
+                    "select check_name from quality_check_result where pipeline_run_id=%s "
+                    "and status in ('fail','error')",
+                    (run,),
+                )
+            }
+
+        assert names(loss_run) == names(trf_run)
+    assert quality.detect(loss_run) == loss
+    assert quality.detect(trf_run) == trf

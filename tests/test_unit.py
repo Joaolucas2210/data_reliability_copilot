@@ -185,3 +185,13 @@ def test_fake_policy_ignores_comment_only_diffs():
     real = "--- a\n+++ b\n@@ -1 +1 @@\n-join x i using (id)\n+join x i on i.k = p.k"
     assert _substantive_diff_lines(cosmetic) == []
     assert len(_substantive_diff_lines(real)) == 2
+
+
+def test_fingerprint_separates_model_changes_and_dates():
+    from drc.quality import fingerprint_signature as fp
+
+    checks = ["inv_reconciliation_count", "inv_reconciliation_amount"]
+    loss = fp(checks, {"report": "original"}, ["2026-09-28"])
+    assert loss == fp(list(reversed(checks)), {"report": "original"}, ["2026-09-28"])
+    assert loss != fp(checks, {"report": "changed"}, ["2026-09-28"])
+    assert loss != fp(checks, {"report": "original"}, ["2026-09-29"])
