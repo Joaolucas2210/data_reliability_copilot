@@ -33,3 +33,9 @@ Freeze rubric/prompt before final. No calibration or live judge call has been me
 
 Abstention is welcome when evidence cannot discriminate causes. No facts means no groundedness score;
 abstention quality remains the catalog's separate outcome/missing-information measurement.
+
+## Local Laya follow-up
+
+A separate [measured Laya probe](../evidence/laya/2026-10-10/REPORT.md) classified archived FAKE dev facts
+using real local model inference. It failed several elementary negative controls; it is not integrated
+into `judge.py`, not agent accuracy, and not human calibration. Anthropic evaluation remains unrun.
