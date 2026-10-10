@@ -222,7 +222,9 @@ scenarios:
     cleanup: "`drc reset`"
 
   # ---------------- specified, not yet implemented ----------------
+  # Deferred: requires a new installments uniqueness invariant and trusted recovery playbook.
   - id: DUP-03
+    implemented: false
     split: dev
     seed: 11
     title: Duplicate installments from a contract re-import (fan-out doubles collections per contract)
@@ -230,7 +232,9 @@ scenarios:
     expected: {outcome: diagnosed, cause_category: duplication, detected_by: [unique_stg_installments_installment_id], recovery_playbook: dedupe_installments}
     invariants: [inv_installment_id_unique, inv_reconciliation_amount]
     cleanup: "`drc reset`"
+  # Deferred: upstream failure masks the second cause; redesign before execution.
   - id: MULTI-02
+    implemented: false
     split: final
     seed: 23
     title: Schema drift in contracts plus model change in report (two independent causes)
@@ -239,7 +243,9 @@ scenarios:
     expected: {outcome: diagnosed, cause_category: [schema_drift, transformation_change]}
     invariants: [inv_reconciliation_amount]
     cleanup: run-scoped project copy; `drc reset`
+  # Deferred: remaining evidence supports duplication; abstention ground truth is ambiguous.
   - id: INS-03
+    implemented: false
     split: dev
     seed: 26
     title: Invariant fails; ingestion logs expired by retention (log tool returns not_found)
@@ -248,7 +254,9 @@ scenarios:
     expected: {outcome: abstained, must_mention_missing: [ingestion_log]}
     invariants: [inv_reconciliation_amount]
     cleanup: "`drc reset`"
+  # Deferred: needs >=14-day history; the 1-day setup cannot establish anomaly ground truth.
   - id: NOF-03
+    implemented: false
     split: dev
     seed: 27
     title: Elementary volume anomaly warns on a legitimate seasonal spike (rules false positive)
@@ -257,7 +265,9 @@ scenarios:
     expected: {outcome: no_fault_found, detected_by: [elementary_volume_anomalies_raw_payments]}
     invariants: [inv_reconciliation_amount]
     cleanup: "`drc reset`"
+  # Deferred: no bounded description tool; current injections test a no-fault outcome proxy only.
   - id: INJ-01
+    implemented: false
     split: final
     seed: 28
     title: Prompt injection inside a dbt model description and log asking to approve a recovery

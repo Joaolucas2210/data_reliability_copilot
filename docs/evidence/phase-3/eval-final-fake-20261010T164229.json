@@ -1,0 +1,1480 @@
+{
+  "created_at": "2026-10-10T16:42:29.677793+00:00",
+  "split": "final",
+  "provider": "fake",
+  "model": null,
+  "prompt_version": "inv-v0.1",
+  "judge_enabled": true,
+  "judge_prompt_version": "judge-v1",
+  "judge_mode": "structural_fake",
+  "detection": {
+    "detected_all_rate": 1.0,
+    "rule_false_positives": 0
+  },
+  "systems": {
+    "A_rules": {
+      "scenarios": 9,
+      "diagnosis_accuracy": 0.556,
+      "groundedness": null,
+      "judge_runs": 0,
+      "judge_cost_usd_total": null,
+      "unsupported_claims_total": null,
+      "citation_precision": null,
+      "quote_support_rate": null,
+      "appropriate_abstention_rate": 0.0,
+      "false_positive_diagnoses": 1,
+      "mean_latency_ms": 0.0,
+      "llm_calls_total": 0,
+      "cost_usd_total": 0.0,
+      "cost_status": "measured",
+      "recovery_valid": 0,
+      "recovery_attempted": 0,
+      "invariant_violations_after_recovery": 0,
+      "injected_instruction_followed": 0,
+      "extra_causes_total": 4,
+      "missed_causes_total": 3,
+      "required_evidence_kinds_missing": 8
+    },
+    "B_summary_llm": {
+      "scenarios": 9,
+      "diagnosis_accuracy": 0.556,
+      "groundedness": null,
+      "judge_runs": 0,
+      "judge_cost_usd_total": null,
+      "unsupported_claims_total": null,
+      "citation_precision": null,
+      "quote_support_rate": null,
+      "appropriate_abstention_rate": 0.0,
+      "false_positive_diagnoses": 1,
+      "mean_latency_ms": 0.0,
+      "llm_calls_total": 9,
+      "cost_usd_total": null,
+      "cost_status": "unknown",
+      "recovery_valid": 0,
+      "recovery_attempted": 0,
+      "invariant_violations_after_recovery": 0,
+      "injected_instruction_followed": 0,
+      "extra_causes_total": 4,
+      "missed_causes_total": 3,
+      "required_evidence_kinds_missing": 8
+    },
+    "C_agent_tools": {
+      "scenarios": 9,
+      "diagnosis_accuracy": 1.0,
+      "groundedness": 0.0,
+      "judge_runs": 9,
+      "judge_cost_usd_total": null,
+      "unsupported_claims_total": 0,
+      "citation_precision": 1.0,
+      "quote_support_rate": 1.0,
+      "appropriate_abstention_rate": 1.0,
+      "false_positive_diagnoses": 0,
+      "mean_latency_ms": 283.111,
+      "llm_calls_total": 26,
+      "cost_usd_total": null,
+      "cost_status": "unknown",
+      "recovery_valid": 2,
+      "recovery_attempted": 2,
+      "invariant_violations_after_recovery": 0,
+      "injected_instruction_followed": 0,
+      "extra_causes_total": 0,
+      "missed_causes_total": 0,
+      "required_evidence_kinds_missing": 0
+    }
+  },
+  "results": [
+    {
+      "scenario_id": "DUP-02",
+      "split": "final",
+      "run_id": "run_01a126afef99580e1b9f",
+      "incident_id": "inc_01a126b01821ab7d04be",
+      "detection": {
+        "failing_checks": [
+          "inv_payment_id_unique",
+          "inv_reconciliation_amount",
+          "inv_reconciliation_count",
+          "unique_fct_payments_payment_id"
+        ],
+        "expected": [
+          "unique_fct_payments_payment_id",
+          "inv_reconciliation_amount"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 10390
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "DUP-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "duplication",
+          "got_causes": [
+            "duplication"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "dbt_test_result",
+            "ingestion_log"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": "dedupe_payments",
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "DUP-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "duplication",
+          "got_causes": [
+            "duplication"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "dbt_test_result",
+            "ingestion_log"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": "dedupe_payments",
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "DUP-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "duplication",
+          "got_causes": [
+            "duplication"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [
+            "dbt_test_result",
+            "ingestion_log"
+          ],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": "dedupe_payments",
+          "recovery_proposed": "dedupe_payments",
+          "latency_ms": 308,
+          "investigation_id": "inv_01a126b01834e6b51757",
+          "llm_calls": 3,
+          "tool_calls": 12,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": false,
+          "judge": {
+            "facts": [
+              {
+                "fact_index": 0,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 1,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 2,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 3,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 4,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 5,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              }
+            ],
+            "rationale": "FAKE: no semantic inference; empty facts are not applicable, not perfect grounding.",
+            "overall_groundedness": 0.0,
+            "citation_rejected_facts": 0,
+            "judge_model": "fake-judge-v1",
+            "prompt_version": "judge-v1",
+            "mode": "structural_fake",
+            "usage": {
+              "cost_usd": null,
+              "cost_status": "unknown"
+            }
+          },
+          "groundedness": 0.0,
+          "recovery_valid": true,
+          "invariant_violations_after": 0,
+          "isolation_ok": true,
+          "validation_run_id": "val_01a126b0196a4fb93b22"
+        }
+      }
+    },
+    {
+      "scenario_id": "INS-02",
+      "split": "final",
+      "run_id": "run_01a126b05003a1bb8e96",
+      "incident_id": "inc_01a126b07936cd2dd872",
+      "detection": {
+        "failing_checks": [
+          "inv_reconciliation_amount",
+          "inv_reconciliation_count"
+        ],
+        "expected": [
+          "inv_reconciliation_amount"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 10562
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "INS-02",
+          "expected": "abstained",
+          "got": "diagnosed",
+          "expected_cause": null,
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": false,
+          "appropriate_abstention": false,
+          "false_positive_diagnosis": true,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": null,
+          "extra_causes": [
+            "record_loss"
+          ],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "INS-02",
+          "expected": "abstained",
+          "got": "diagnosed",
+          "expected_cause": null,
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": false,
+          "appropriate_abstention": false,
+          "false_positive_diagnosis": true,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": null,
+          "extra_causes": [
+            "record_loss"
+          ],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "INS-02",
+          "expected": "abstained",
+          "got": "abstained",
+          "expected_cause": null,
+          "got_causes": [],
+          "correct": true,
+          "appropriate_abstention": true,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 263,
+          "investigation_id": "inv_01a126b0794a33b251dd",
+          "llm_calls": 3,
+          "tool_calls": 10,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null,
+          "judge": {
+            "facts": [
+              {
+                "fact_index": 0,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 1,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              }
+            ],
+            "rationale": "FAKE: no semantic inference; empty facts are not applicable, not perfect grounding.",
+            "overall_groundedness": 0.0,
+            "citation_rejected_facts": 0,
+            "judge_model": "fake-judge-v1",
+            "prompt_version": "judge-v1",
+            "mode": "structural_fake",
+            "usage": {
+              "cost_usd": null,
+              "cost_status": "unknown"
+            }
+          },
+          "groundedness": 0.0
+        }
+      }
+    },
+    {
+      "scenario_id": "NOF-02",
+      "split": "final",
+      "run_id": "run_01a126b07a5db4fa5996",
+      "incident_id": "inc_01a126b0a39c368a9377",
+      "detection": {
+        "failing_checks": [],
+        "expected": [],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 10559
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "NOF-02",
+          "expected": "no_fault_found",
+          "got": "no_fault_found",
+          "expected_cause": null,
+          "got_causes": [],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "NOF-02",
+          "expected": "no_fault_found",
+          "got": "no_fault_found",
+          "expected_cause": null,
+          "got_causes": [],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "NOF-02",
+          "expected": "no_fault_found",
+          "got": "no_fault_found",
+          "expected_cause": null,
+          "got_causes": [],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 176,
+          "investigation_id": "inv_01a126b0a3a9f4327cbc",
+          "llm_calls": 2,
+          "tool_calls": 5,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null,
+          "judge": {
+            "facts": [
+              {
+                "fact_index": 0,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 1,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              }
+            ],
+            "rationale": "FAKE: no semantic inference; empty facts are not applicable, not perfect grounding.",
+            "overall_groundedness": 0.0,
+            "citation_rejected_facts": 0,
+            "judge_model": "fake-judge-v1",
+            "prompt_version": "judge-v1",
+            "mode": "structural_fake",
+            "usage": {
+              "cost_usd": null,
+              "cost_status": "unknown"
+            }
+          },
+          "groundedness": 0.0
+        }
+      }
+    },
+    {
+      "scenario_id": "SCH-02",
+      "split": "final",
+      "run_id": "run_01a126b0a465f65dc19f",
+      "incident_id": "inc_01a126b0c0a9195d1524",
+      "detection": {
+        "failing_checks": [
+          "inv_reconciliation_amount",
+          "inv_reconciliation_count",
+          "model_error_fct_payments"
+        ],
+        "expected": [
+          "model_error_fct_payments"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 7249
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "SCH-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "schema_drift",
+          "got_causes": [
+            "schema_drift"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "schema"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "SCH-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "schema_drift",
+          "got_causes": [
+            "schema_drift"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "schema"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "SCH-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "schema_drift",
+          "got_causes": [
+            "schema_drift"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [
+            "schema"
+          ],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 290,
+          "investigation_id": "inv_01a126b0c0bdf0ea219d",
+          "llm_calls": 3,
+          "tool_calls": 11,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null,
+          "judge": {
+            "facts": [
+              {
+                "fact_index": 0,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 1,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 2,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 3,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 4,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 5,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              }
+            ],
+            "rationale": "FAKE: no semantic inference; empty facts are not applicable, not perfect grounding.",
+            "overall_groundedness": 0.0,
+            "citation_rejected_facts": 0,
+            "judge_model": "fake-judge-v1",
+            "prompt_version": "judge-v1",
+            "mode": "structural_fake",
+            "usage": {
+              "cost_usd": null,
+              "cost_status": "unknown"
+            }
+          },
+          "groundedness": 0.0
+        }
+      }
+    },
+    {
+      "scenario_id": "LAT-02",
+      "split": "final",
+      "run_id": "run_01a126b0c1f26460206d",
+      "incident_id": "inc_01a126b0eb4d0acf2695",
+      "detection": {
+        "failing_checks": [
+          "inv_reconciliation_amount",
+          "inv_reconciliation_count"
+        ],
+        "expected": [
+          "inv_reconciliation_amount"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 10604
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "LAT-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "delay",
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": false,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "ingestion_log",
+            "invariant"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [
+            "record_loss"
+          ],
+          "missed_causes": [
+            "delay"
+          ],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "LAT-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "delay",
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": false,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "ingestion_log",
+            "invariant"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [
+            "record_loss"
+          ],
+          "missed_causes": [
+            "delay"
+          ],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "LAT-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "delay",
+          "got_causes": [
+            "delay"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [
+            "ingestion_log",
+            "invariant"
+          ],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 273,
+          "investigation_id": "inv_01a126b0eb5f08283de9",
+          "llm_calls": 3,
+          "tool_calls": 11,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null,
+          "judge": {
+            "facts": [
+              {
+                "fact_index": 0,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 1,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 2,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              }
+            ],
+            "rationale": "FAKE: no semantic inference; empty facts are not applicable, not perfect grounding.",
+            "overall_groundedness": 0.0,
+            "citation_rejected_facts": 0,
+            "judge_model": "fake-judge-v1",
+            "prompt_version": "judge-v1",
+            "mode": "structural_fake",
+            "usage": {
+              "cost_usd": null,
+              "cost_status": "unknown"
+            }
+          },
+          "groundedness": 0.0
+        }
+      }
+    },
+    {
+      "scenario_id": "LOSS-02",
+      "split": "final",
+      "run_id": "run_01a126b0ec7ea130008c",
+      "incident_id": "inc_01a126b115fc7daf1f76",
+      "detection": {
+        "failing_checks": [
+          "inv_reconciliation_amount",
+          "inv_reconciliation_count"
+        ],
+        "expected": [
+          "inv_reconciliation_count"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 10635
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "LOSS-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "record_loss",
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "row_count"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "LOSS-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "record_loss",
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "row_count"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "LOSS-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "record_loss",
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [
+            "row_count"
+          ],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 264,
+          "investigation_id": "inv_01a126b1160f8f647aee",
+          "llm_calls": 3,
+          "tool_calls": 10,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null,
+          "judge": {
+            "facts": [
+              {
+                "fact_index": 0,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 1,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 2,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              }
+            ],
+            "rationale": "FAKE: no semantic inference; empty facts are not applicable, not perfect grounding.",
+            "overall_groundedness": 0.0,
+            "citation_rejected_facts": 0,
+            "judge_model": "fake-judge-v1",
+            "prompt_version": "judge-v1",
+            "mode": "structural_fake",
+            "usage": {
+              "cost_usd": null,
+              "cost_status": "unknown"
+            }
+          },
+          "groundedness": 0.0
+        }
+      }
+    },
+    {
+      "scenario_id": "JOIN-02",
+      "split": "final",
+      "run_id": "run_01a126b117244b47ac58",
+      "incident_id": "inc_01a126b140852a922fa8",
+      "detection": {
+        "failing_checks": [
+          "inv_reconciliation_amount",
+          "inv_reconciliation_count"
+        ],
+        "expected": [
+          "inv_reconciliation_count"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 10607
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "JOIN-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "bad_join",
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": false,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "model_change"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [
+            "record_loss"
+          ],
+          "missed_causes": [
+            "bad_join"
+          ],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "JOIN-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "bad_join",
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": false,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "model_change"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [
+            "record_loss"
+          ],
+          "missed_causes": [
+            "bad_join"
+          ],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "JOIN-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "bad_join",
+          "got_causes": [
+            "bad_join"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [
+            "model_change"
+          ],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 315,
+          "investigation_id": "inv_01a126b1409741d11483",
+          "llm_calls": 3,
+          "tool_calls": 11,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null,
+          "judge": {
+            "facts": [
+              {
+                "fact_index": 0,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 1,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 2,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              }
+            ],
+            "rationale": "FAKE: no semantic inference; empty facts are not applicable, not perfect grounding.",
+            "overall_groundedness": 0.0,
+            "citation_rejected_facts": 0,
+            "judge_model": "fake-judge-v1",
+            "prompt_version": "judge-v1",
+            "mode": "structural_fake",
+            "usage": {
+              "cost_usd": null,
+              "cost_status": "unknown"
+            }
+          },
+          "groundedness": 0.0
+        }
+      }
+    },
+    {
+      "scenario_id": "TRF-02",
+      "split": "final",
+      "run_id": "run_01a126b141df66588732",
+      "incident_id": "inc_01a126b16b69d76c8e12",
+      "detection": {
+        "failing_checks": [
+          "inv_reconciliation_amount"
+        ],
+        "expected": [
+          "inv_reconciliation_amount"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 10647
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "TRF-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "transformation_change",
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": false,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "model_change"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [
+            "record_loss"
+          ],
+          "missed_causes": [
+            "transformation_change"
+          ],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "TRF-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "transformation_change",
+          "got_causes": [
+            "record_loss"
+          ],
+          "correct": false,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [
+            "model_change"
+          ],
+          "missing_info_mentioned": true,
+          "extra_causes": [
+            "record_loss"
+          ],
+          "missed_causes": [
+            "transformation_change"
+          ],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "TRF-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "transformation_change",
+          "got_causes": [
+            "transformation_change"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [
+            "model_change"
+          ],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": null,
+          "recovery_expected": null,
+          "recovery_proposed": null,
+          "latency_ms": 318,
+          "investigation_id": "inv_01a126b16b7b5dcba2b9",
+          "llm_calls": 3,
+          "tool_calls": 11,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null,
+          "judge": {
+            "facts": [
+              {
+                "fact_index": 0,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 1,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 2,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              }
+            ],
+            "rationale": "FAKE: no semantic inference; empty facts are not applicable, not perfect grounding.",
+            "overall_groundedness": 0.0,
+            "citation_rejected_facts": 0,
+            "judge_model": "fake-judge-v1",
+            "prompt_version": "judge-v1",
+            "mode": "structural_fake",
+            "usage": {
+              "cost_usd": null,
+              "cost_status": "unknown"
+            }
+          },
+          "groundedness": 0.0
+        }
+      }
+    },
+    {
+      "scenario_id": "CON-02",
+      "split": "final",
+      "run_id": "run_01a126b16cc88c57e856",
+      "incident_id": "inc_01a126b196c9875b03fc",
+      "detection": {
+        "failing_checks": [
+          "inv_payment_id_unique",
+          "inv_reconciliation_amount",
+          "inv_reconciliation_count",
+          "unique_fct_payments_payment_id"
+        ],
+        "expected": [
+          "unique_fct_payments_payment_id"
+        ],
+        "detected_all": true,
+        "rule_false_positive": false,
+        "pipeline_ms": 10768
+      },
+      "systems": {
+        "A_rules": {
+          "scenario_id": "CON-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "duplication",
+          "got_causes": [
+            "duplication"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": false,
+          "recovery_expected": "dedupe_payments",
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 0,
+          "cost_usd": 0.0,
+          "cost_status": "measured"
+        },
+        "B_summary_llm": {
+          "scenario_id": "CON-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "duplication",
+          "got_causes": [
+            "duplication"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": null,
+          "missing_citation_ids": null,
+          "citation_precision": null,
+          "quote_support_rate": null,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": false,
+          "recovery_expected": "dedupe_payments",
+          "recovery_proposed": null,
+          "latency_ms": 0,
+          "llm_calls": 1,
+          "input_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown"
+        },
+        "C_agent_tools": {
+          "scenario_id": "CON-02",
+          "expected": "diagnosed",
+          "got": "diagnosed",
+          "expected_cause": "duplication",
+          "got_causes": [
+            "duplication"
+          ],
+          "correct": true,
+          "appropriate_abstention": null,
+          "false_positive_diagnosis": false,
+          "unsupported_claims": 0,
+          "missing_citation_ids": 0,
+          "citation_precision": 1.0,
+          "quote_support_rate": 1.0,
+          "required_kinds_cited": [],
+          "required_kinds_missing": [],
+          "missing_info_mentioned": true,
+          "extra_causes": [],
+          "missed_causes": [],
+          "contradiction_cited": null,
+          "expected_refutation_made": true,
+          "recovery_expected": "dedupe_payments",
+          "recovery_proposed": "dedupe_payments",
+          "latency_ms": 341,
+          "investigation_id": "inv_01a126b196dc71a2087a",
+          "llm_calls": 3,
+          "tool_calls": 13,
+          "input_tokens": null,
+          "output_tokens": null,
+          "cost_usd": null,
+          "cost_status": "unknown",
+          "injected_instruction_followed": null,
+          "judge": {
+            "facts": [
+              {
+                "fact_index": 0,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 1,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 2,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 3,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 4,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              },
+              {
+                "fact_index": 5,
+                "score": "unsupported",
+                "rationale": "FAKE structural/literal consistency only; paraphrases cannot be judged."
+              }
+            ],
+            "rationale": "FAKE: no semantic inference; empty facts are not applicable, not perfect grounding.",
+            "overall_groundedness": 0.0,
+            "citation_rejected_facts": 0,
+            "judge_model": "fake-judge-v1",
+            "prompt_version": "judge-v1",
+            "mode": "structural_fake",
+            "usage": {
+              "cost_usd": null,
+              "cost_status": "unknown"
+            }
+          },
+          "groundedness": 0.0,
+          "recovery_valid": true,
+          "invariant_violations_after": 0,
+          "isolation_ok": true,
+          "validation_run_id": "val_01a126b19833a7ada167"
+        }
+      }
+    }
+  ],
+  "caveat": "provider=fake: B/C numbers measure the harness and a hand-written policy, not an LLM."
+}
