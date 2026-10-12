@@ -27,7 +27,7 @@ Errors: `{"error": {"code": "forbidden" | "not_found" | "conflict" | "invalid", 
 | POST | `/api/incidents/{id}/investigations` | `202 {investigation_id, job_id}` (idempotent via `Idempotency-Key` header) |
 | GET | `/api/investigations/{id}` | `Investigation` (below) |
 | POST | `/api/investigations/{id}/review` | body `{decision: "approve"\|"reject", note}` → `Investigation` |
-| POST | `/api/proposals/{id}/validations` | `202 {job_id}` — the run id appears as `latest_validation_run_id` on the investigation's proposal once the worker starts it |
+| POST | `/api/proposals/{id}/validations` | `202 {validation_run_id, job_id}` — the queued validation is created before enqueueing the worker job |
 | POST | `/api/investigations/{id}/cancel` | `202 {result: "cancelled" \| "cancel_requested"}`; 409 if not queued/running (investigator+) |
 | GET | `/api/validation-runs/{id}` | `ValidationRun` |
 | GET | `/api/evaluations/latest` | `{runs: [EvalRun]}` |
