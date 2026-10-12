@@ -1,5 +1,7 @@
 # Local runbook
 
+For a Portuguese walkthrough with beginner and staff engineer sections, trigger diagrams, investigation details and data concepts, see the [end-to-end guide](guia-ponta-a-ponta.md).
+
 Prerequisites: Docker (Compose v2), [uv](https://docs.astral.sh/uv/), Node 24, GNU Make. Terraform is not needed
 locally (`make tf-check` runs it in Docker).
 

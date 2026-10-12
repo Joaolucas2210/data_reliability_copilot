@@ -50,6 +50,8 @@ make eval      # benchmark (dev split); make eval-final for the held-out split
 
 Details, profiles (Marquez, Jaeger) and resource use: [local runbook](docs/operations/local-runbook.md).
 
+Guia em português: [passo a passo para iniciantes e staff engineers](docs/operations/guia-ponta-a-ponta.md), com fluxogramas, gatilhos, investigação e conceitos de engenharia de dados.
+
 ## Repository map
 
 | Path | What |
