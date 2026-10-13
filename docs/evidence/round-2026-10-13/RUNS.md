@@ -1,4 +1,4 @@
-# Validation round — 2026-10-13
+# Validation round: 2026-10-13
 
 Code base `76dfbf8` plus this round's test changes (`tests/test_unit.py`, `tests/test_integration.py`,
 `web/tests/live.spec.ts`). Product code and frozen policy unchanged: `freeze.sha256` matches phase 3
@@ -41,8 +41,8 @@ coverage and is not a project dependency.
 
 | System | Exact cause-set accuracy | False-positive diagnoses | Appropriate abstention | Citation precision | Recovery valid | Invariant violations |
 |---|---|---|---|---|---|---|
-| A rules | 0.50 | 2 | 0.00 | – | 0/0 | 0 |
-| B summary-only | 0.50 | 2 | 0.00 | – | 0/0 | 0 |
+| A rules | 0.50 | 2 | 0.00 | - | 0/0 | 0 |
+| B summary-only | 0.50 | 2 | 0.00 | - | 0/0 | 0 |
 | C agent + tools | 1.00 | 0 | 1.00 | 1.00 | 1/1 | 0 |
 
 Rule detection: 100% of expected checks fired, 0 rule false positives. The structural FAKE groundedness

@@ -1,6 +1,6 @@
 # Benchmark
 
-Catalog (ground truth): `benchmark/scenarios/catalog.yaml` — **24 scenarios, 19 executable** (10 dev, 9 final), 5 specified.
+Catalog (ground truth): `benchmark/scenarios/catalog.yaml`: **24 scenarios, 19 executable** (10 dev, 9 final), 5 specified.
 Harness: `src/drc/evaluate.py` (`drc eval --split dev|final|all [--provider fake|anthropic]`). Decision: ADR-0008.
 
 ## Coverage
@@ -8,16 +8,16 @@ Harness: `src/drc/evaluate.py` (`drc eval --split dev|final|all [--provider fake
 | Class | Dev (tuning allowed) | Final (held out) | Specified only |
 |---|---|---|---|
 | Duplication | DUP-01 | DUP-02 | DUP-03 |
-| Schema drift | SCH-01 (column renamed) | SCH-02 (amount delivered as pt-BR text) | — |
-| Delay | LAT-01 (job silent ~50 h, freshness error) | LAT-02 (latest day cut off early) | — |
-| Record loss | LOSS-01 (loader drops rows) | LOSS-02 (contracts missing → inner joins drop payments) | — |
-| Incorrect join | JOIN-01 (fan-out join) | JOIN-02 (join gains a filter) | — |
-| Transformation change | TRF-01 (business date → week) | TRF-02 (amount rounded) | — |
-| Multiple causes | MULTI-01 (duplication + partial day) | — | MULTI-02 (needs redesign, see note) |
+| Schema drift | SCH-01 (column renamed) | SCH-02 (amount delivered as pt-BR text) | - |
+| Delay | LAT-01 (job silent ~50 h, freshness error) | LAT-02 (latest day cut off early) | - |
+| Record loss | LOSS-01 (loader drops rows) | LOSS-02 (contracts missing → inner joins drop payments) | - |
+| Incorrect join | JOIN-01 (fan-out join) | JOIN-02 (join gains a filter) | - |
+| Transformation change | TRF-01 (business date → week) | TRF-02 (amount rounded) | - |
+| Multiple causes | MULTI-01 (duplication + partial day) | - | MULTI-02 (needs redesign, see note) |
 | Insufficient evidence | INS-01 | INS-02 | INS-03 (ground truth ambiguous, see note) |
-| Contradictory evidence | CON-01 (log claims a retry the data doesn't show) | CON-02 (cosmetic code change + real duplication) | — |
+| Contradictory evidence | CON-01 (log claims a retry the data doesn't show) | CON-02 (cosmetic code change + real duplication) | - |
 | No failure | NOF-01 | NOF-02 | NOF-03 (needs anomaly history) |
-| Prompt injection | planted line in DUP-01/02 logs | — | INJ-01 (needs a docs tool + live LLM) |
+| Prompt injection | planted line in DUP-01/02 logs | - | INJ-01 (needs a docs tool + live LLM) |
 
 Final scenarios are **different variants of the dev mechanism families** (not just new seeds, except DUP/INS/NOF-02).
 They test generalisation across variants, not to unseen failure classes.
@@ -35,7 +35,7 @@ They test generalisation across variants, not to unseen failure classes.
 - **Fake-policy discipline:** rules were changed only after dev runs; the policy file hash was recorded before the first
   final run (`docs/evidence/phase-2/fake-v2-freeze.txt`) and verified unchanged before the final re-run.
 
-## Results — phase 2, provider = fake (2026-10-09)
+## Results: phase 2, provider = fake (2026-10-09)
 
 | System | Split | Accuracy | False-positive diagnoses | Abstention when expected | Extra / missed causes | Unsupported claims | Citation precision | Recovery valid |
 |---|---|---|---|---|---|---|---|---|
@@ -46,7 +46,7 @@ They test generalisation across variants, not to unseen failure classes.
 | B summary-only | final (9) | 0.556 | 1 | 0 / 1 | 4 / 3 | n/a | n/a | n/a |
 | C agent + tools | final (9) | 1.00 | 0 | 1 / 1 | 0 / 0 | 0 | 1.0 | 2 / 2 |
 
-Detection: dev 10/10 expected checks fired; final 8/9 — **SCH-02 is a ground-truth error**, not a detection miss: the
+Detection: dev 10/10 expected checks fired; final 8/9, **SCH-02 is a ground-truth error**, not a detection miss: the
 catalog said `model_error_stg_payments`, but Postgres creates the view without evaluating the cast, so the error surfaces
 in `fct_payments`. Corrected in the catalog with a dated note; the number above is reported as it ran.
 

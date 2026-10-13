@@ -3,7 +3,7 @@
 [![CI](https://github.com/Joaolucas2210/data_reliability_copilot/actions/workflows/ci.yml/badge.svg)](https://github.com/Joaolucas2210/data_reliability_copilot/actions/workflows/ci.yml)
 [![Terraform](https://github.com/Joaolucas2210/data_reliability_copilot/actions/workflows/terraform.yml/badge.svg)](https://github.com/Joaolucas2210/data_reliability_copilot/actions/workflows/terraform.yml)
 
-Investigates data-pipeline incidents — including the case where **the pipeline succeeds but the report is wrong** —
+Investigates data-pipeline incidents, including the case where **the pipeline succeeds but the report is wrong**,
 on a fictional consumer-finance operation with synthetic customers, contracts, installments and payments.
 
 **Rules detect. The agent investigates and proposes. Humans decide.** Every factual claim cites evidence that
@@ -18,7 +18,7 @@ Every screen below is real output from `make demo` against the local stack
 ([validation round 2026-10-13](docs/evidence/round-2026-10-13/RUNS.md)). The agent runs on the deterministic
 **Simulated LLM**: a frozen, deterministic policy with no model behind it (provider `fake` in code). The UI labels it that way.
 
-**1 — Rules detect.** The run succeeded, but four checks fail: one dbt test and three business invariants.
+**1. Rules detect.** The run succeeded, but four checks fail: one dbt test and three business invariants.
 An incident opens with a full audit timeline.
 
 <picture>
@@ -26,7 +26,7 @@ An incident opens with a full audit timeline.
   <img alt="Incident page: four failing checks and an audit timeline" src="docs/demo/img/incident-detail-light.png" width="860">
 </picture>
 
-**2 — The agent investigates, with evidence.** Twelve bounded, read-only tool calls collect 19 evidence items.
+**2. The agent investigates, with evidence.** Twelve bounded, read-only tool calls collect 19 evidence items.
 Each fact must quote its cited evidence verbatim, or citation enforcement removes it.
 
 <picture>
@@ -34,7 +34,7 @@ Each fact must quote its cited evidence verbatim, or citation enforcement remove
   <img alt="Investigation: facts with verbatim quotes and evidence citations" src="docs/demo/img/investigation-light.png" width="860">
 </picture>
 
-**3 — Recovery is proven in a sandbox, not applied.** The allow-listed `dedupe_payments` playbook runs on an
+**3. Recovery is proven in a sandbox, not applied.** The allow-listed `dedupe_payments` playbook runs on an
 isolated copy, with role isolation checks. All three invariants go from violated to holding, and production stays unchanged.
 
 <picture>
@@ -42,9 +42,9 @@ isolated copy, with role isolation checks. All three invariants go from violated
   <img alt="Sandbox validation: stages, isolation checks and invariants before and after" src="docs/demo/img/validation-light.png" width="860">
 </picture>
 
-**4 — A human decides.** Only the approver role can approve or reject. Approval never runs SQL against production.
+**4. A human decides.** Only the approver role can approve or reject. Approval never runs SQL against production.
 
-**5 — Measured against baselines.** On 10 dev scenarios, rules alone (A) and a summary-only LLM (B) get 50%.
+**5. Measured against baselines.** On 10 dev scenarios, rules alone (A) and a summary-only LLM (B) get 50%.
 They diagnose loss where the evidence is insufficient or contradictory. The agent with tools (C) gets
 100%, **with the Simulated LLM**, which measures the harness rather than model quality. The LIVE evaluation is
 specified, but it has not run.
@@ -60,7 +60,7 @@ specified, but it has not run.
 
 </details>
 
-Walkthrough script for presenting it: [3–4 minute demo](docs/demo/SCRIPT.md).
+Walkthrough script for presenting it: [3-4 minute demo](docs/demo/SCRIPT.md).
 
 ## Principles
 
@@ -160,7 +160,7 @@ See the [LIVE results template](docs/evidence/live/RESULTS_TEMPLATE.md) and [pro
 | [Validation round 2026-10-13](docs/evidence/round-2026-10-13/RUNS.md) | 51 tests (0 skipped), branch coverage 64% → 67%, live-data UI 13/13 axe-clean; [test gap review](docs/report/test-gap-review.md). Simulated LLM only. |
 | Next | LIVE measurement and human judge calibration await credentials; cloud remains unapplied. |
 
-[ADRs](docs/adr/README.md) · [Local runbook](docs/operations/local-runbook.md) · [3–4 minute demo](docs/demo/SCRIPT.md)
+[ADRs](docs/adr/README.md) · [Local runbook](docs/operations/local-runbook.md) · [3-4 minute demo](docs/demo/SCRIPT.md)
 
 ## Checks
 

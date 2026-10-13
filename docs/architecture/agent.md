@@ -33,7 +33,7 @@ counters (LLM calls, tool calls, tokens, latency, cost + status), diagnosis, cit
 | LLM calls | 6 | abstain, `limit_hit` recorded |
 | input tokens | 120 000 | abstain |
 | wall time | 300 s | abstain |
-| cost | US$ 1.00 (estimated) | abstain; unknown cost cannot trip this limit — see risks |
+| cost | US$ 1.00 (estimated) | abstain; unknown cost cannot trip this limit, see risks |
 
 ## Tools (all read-only, bounded, scoped to the incident's run)
 
@@ -46,8 +46,8 @@ counters (LLM calls, tool calls, tokens, latency, cost + status), diagnosis, cit
 | `read_ingestion_log` | `var/runs/<run>/logs/ingestion.jsonl` filtered by level/batch | 40 lines, line locators |
 | `read_run_log` | dbt stdout of `dbt_run/dbt_test/dbt_freshness` | FAIL/ERROR/WARN or term; 40 lines |
 | `get_schema` | live `information_schema` vs manifest-declared columns | allow-listed dataset |
-| `get_model_changes` | manifest node checksums vs previous succeeded run | — |
-| `get_lineage` | upstream **declared** dependencies from this run's OpenLineage events | — |
+| `get_model_changes` | manifest node checksums vs previous succeeded run | - |
+| `get_lineage` | upstream **declared** dependencies from this run's OpenLineage events | - |
 | `compare_control_totals` | report vs `ops.control_totals`, mismatching dates | 10 rows |
 | `sample_rows` | one key value of an allow-listed dataset, allow-listed non-PII columns | 10 rows; customer-linked datasets → `restricted` |
 | `reconcile_ingestion_batches` *(phase 2)* | declared rows per batch (sum over attempts) vs rows landed in raw | mismatches only, 10 rows |
@@ -93,13 +93,13 @@ damage of a successful injection to a wrong diagnosis that a human still reviews
 | Fake mode | `DRC_LLM_PROVIDER=fake` (default): deterministic rule policy; `investigation.mode="fake"` shown in UI |
 
 **The model choice is provisional.** It has not been evaluated live because no credentials were available.
-The intended process: run `drc eval --provider anthropic --split dev` for 2–3 candidate models/efforts,
+The intended process: run `drc eval --provider anthropic --split dev` for 2-3 candidate models/efforts,
 compare accuracy, unsupported claims, abstention and cost per scenario, then pick; record in ADR-0006.
 
 ## Phase 2 changes
 
 - **Round semantics fixed:** a plan marked `ready_to_conclude` still executes the tool requests of that round, then
-  concludes (phase 1 silently dropped them — found when JOIN-01 abstained because its model diffs were never fetched).
+  concludes (phase 1 silently dropped them, found when JOIN-01 abstained because its model diffs were never fetched).
 - **Cancellation:** `POST /api/investigations/{id}/cancel` / `drc cancel`. Queued → cancelled immediately; running → flag
   checked at the start of every working node; the run ends `cancelled`, the incident returns to `open`.
 - **Fake policy v2** (`fake_llm.py`, `POLICY_VERSION = "fake-v2"`): generic evidence-pattern rules for duplication,

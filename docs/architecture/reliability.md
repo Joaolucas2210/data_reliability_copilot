@@ -56,7 +56,7 @@ Exhausting an agent limit yields an **abstention** with the limit named, never a
 
 - Workers claim jobs with `FOR UPDATE SKIP LOCKED` → multiple workers are safe. Status transitions lock the row.
 - One sandbox DB per validation; Postgres `max_connections=60`; container memory limits in compose.
-- **Known limit:** pipeline runs share the `warehouse` raw/ops schemas — two concurrent pipeline runs would
+- **Known limit:** pipeline runs share the `warehouse` raw/ops schemas, two concurrent pipeline runs would
   interfere. Phase 1 assumes one pipeline run at a time (the benchmark is sequential).
 - **Fixed in phase 2 (ADR-0014):** tools used to read the *current* warehouse. Each run now freezes its state into `snap_<run_id>`; tools and recovery read that snapshot.
 - **Phase 3 fingerprint v2:** SHA-256 of canonical JSON containing sorted failing check names,
@@ -75,7 +75,7 @@ Exhausting an agent limit yields an **abstention** with the limit named, never a
 ## Backup and restore
 
 - Local: `docker compose` volume `pgdata`; `make destroy` deletes it. Data is reproducible from seeds; incident
-  history is not — export with `pg_dump app` if it matters.
+  history is not: export with `pg_dump app` if it matters.
 - Azure (Terraform): PostgreSQL Flexible Server automated backups, 7-day retention, PITR; geo-redundant backup
   off for dev (documented trade-off). Restore drill: **not executed** (no cloud apply in this phase).
 
@@ -96,7 +96,7 @@ warehouse), `copilot_reader` (read-only, 5 s timeout), `app`, `sandbox_rw` (no C
 | Per-run snapshots `snap_<run_id>` | newest 20, plus any referenced by non-terminal incidents | implemented (`drc prune`) |
 | `var/traces/spans.jsonl` | rotated above 50 MB | implemented (`drc prune`) |
 | Sandbox DBs | dropped at end of validation; GC after 1 h | implemented |
-| Eval runs / MLflow | keep (small) | — |
+| Eval runs / MLflow | keep (small) | - |
 
 Evidence is excerpted (≤4000 chars), PII columns are never selected (allow-listed columns), and synthetic data
 contains no real personal data.

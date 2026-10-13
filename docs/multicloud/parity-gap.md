@@ -21,7 +21,7 @@ resources. **Multicloud is an architectural goal, not a validated property.**
 | Observability | ✅ Log Analytics (1 GB/day cap) + App Insights | ❌ | ❌ |
 | Private networking | ❌ (public + firewall; see AZ-3) | ❌ | ❌ |
 | `plan` executed | ❌ blocked: no credentials provisioned | ❌ blocked | ❌ blocked |
-| Equivalence tests E2–E10 | ❌ | ❌ | ❌ |
+| Equivalence tests E2-E10 | ❌ | ❌ | ❌ |
 
 Static check output (2026-10-09, Terraform 1.16.5 in `hashicorp/terraform:1.16.5`):
 `fmt -check -recursive`: clean. `validate`: "Success! The configuration is valid." for `azure/bootstrap`,
@@ -61,10 +61,10 @@ Static check output (2026-10-09, Terraform 1.16.5 in `hashicorp/terraform:1.16.5
 5. **Observability**: OTLP exporter targets (ADOT collector sidecar on ECS, Cloud Trace / Cloud Logging on GCP),
    log retention (CloudWatch 30 d, Cloud Logging bucket retention), ingestion caps or exclusion filters.
 6. **CI**: image push jobs for ECR and Artifact Registry using the federated identities that already exist.
-7. **Equivalence suite E2–E10** as a CI workflow (manual dispatch) per cloud, with results appended here.
+7. **Equivalence suite E2-E10** as a CI workflow (manual dispatch) per cloud, with results appended here.
 8. **CMEK parity** (Azure Key Vault keys / GCP KMS) only if a requirement appears. AWS has a CMK already.
 
 ## Exit criterion for "multicloud validated"
 
-All of E1–E10 in [equivalence-matrix.md](equivalence-matrix.md) pass for a cloud, recorded with dated CI run links.
+All of E1-E10 in [equivalence-matrix.md](equivalence-matrix.md) pass for a cloud, recorded with dated CI run links.
 Until then, docs and READMEs must say "Azure reference path; AWS/GCP foundation only".

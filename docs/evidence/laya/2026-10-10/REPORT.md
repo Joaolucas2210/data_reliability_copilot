@@ -1,4 +1,4 @@
-# Local Laya groundedness probe — 2026-10-10
+# Local Laya groundedness probe: 2026-10-10
 
 **Measured local model inference, not FAKE inference and not live agent accuracy.** The diagnosis
 inputs are 39 facts from the archived FAKE-generated dev investigations. No final-split replay or
@@ -58,9 +58,9 @@ not semantic accuracy, ground truth, or a replacement for the catalog's exact ca
 No human-labelled calibration sample or label-order robustness experiment was run. Results may be
 sensitive to prompt phrasing, option order and the small hand-authored control set.
 
-47 model requests: median end-to-end latency **28.94 ms**, observed range **21.40–446.09 ms**, on
+47 model requests: median end-to-end latency **28.94 ms**, observed range **21.40-446.09 ms**, on
 this local MPS setup after an earlier warm-up smoke call. This is not a GPU throughput benchmark.
-`confidence` ranged 0.0373–0.6868; it is distinct from `answer_confidence` (both preserved).
+`confidence` ranged 0.0373-0.6868; it is distinct from `answer_confidence` (both preserved).
 Compute cost is unmeasured: `cost_usd=null`, `cost_status=unknown`, never an invented zero bill.
 
 ## Decision and validation

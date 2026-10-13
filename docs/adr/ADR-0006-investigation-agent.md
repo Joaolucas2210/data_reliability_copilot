@@ -1,4 +1,4 @@
-# ADR-0006 — One LangGraph investigation agent with explicit state, bounded tools and enforced citations
+# ADR-0006: One LangGraph investigation agent with explicit state, bounded tools and enforced citations
 
 - **Status:** Accepted (provisional for the model choice, 2026-10-09). The workflow is accepted. The live model choice is unvalidated: no API credentials were available, so no live evaluation ran.
 - **Deciders:** project owner (Staff Engineer role)

@@ -1,4 +1,4 @@
-# Phase 2 report — time-consistent evidence, 19 executable scenarios, operations
+# Phase 2 report: time-consistent evidence, 19 executable scenarios, operations
 
 This is the historical phase-2 record. Follow-up fixes and new measurements are in the
 [phase-3 report](phase-3-report.md); original negative results below are preserved.
@@ -32,12 +32,12 @@ violations, cosmetic-change hypothesis refuted in CON-02. Detection: dev 10/10; 
 error** in SCH-02 (corrected afterwards, reported as it ran). Raw records: `docs/evidence/phase-2/`.
 
 **Caveat (same as phase 1, sharper now):** `fake-v2` is a rule policy I wrote knowing the dev mechanism families. Its
-held-out score shows the rules generalise to the final *variants* and that the machinery works end to end — not that an
+held-out score shows the rules generalise to the final *variants* and that the machinery works end to end, not that an
 LLM agent would. The baselines' ~0.5 shows the scenarios discriminate.
 
 ## 3. Verification
 
-- `pytest`: 25 passed (13 unit, 12 integration) — new: composite injection guard, exact scoring, comment-only diffs,
+- `pytest`: 25 passed (13 unit, 12 integration). New: composite injection guard, exact scoring, comment-only diffs,
   baseline A, snapshot evidence, cancel queued/running, heartbeat lease ownership, prune protection.
 - ruff + mypy clean (20 source files); UI typecheck/build; Terraform unchanged.
 - Freeze evidence: `fake_llm.py` sha256[:16] = `66a86a5855b34aee` recorded before the first final run and re-checked
@@ -47,7 +47,7 @@ LLM agent would. The baselines' ~0.5 shows the scenarios discriminate.
 
 1. **Dropped tool round (agent bug, phase 1 code):** a plan marked "ready to conclude" discarded its own tool requests;
    JOIN-01 abstained because its model diffs were never fetched. Fixed.
-2. **Snapshot crashed the pipeline (phase 2 code):** the first final run aborted in SCH-02 — a view created fine but
+2. **Snapshot crashed the pipeline (phase 2 code):** the first final run aborted in SCH-02, a view created fine but
    failed when read. Fixed with per-relation savepoints; run re-done with the same policy hash.
 3. **Contract mis-attribution:** a contracted model skipped because upstream failed was recorded as a contract failure.
 4. **Ground-truth error:** SCH-02 `detected_by` assumed the cast fails in staging; it fails in `fct_payments`.
@@ -58,9 +58,9 @@ LLM agent would. The baselines' ~0.5 shows the scenarios discriminate.
 
 ## 5. Consumption
 
-Dev eval ~5:30 wall, final ~5:50 wall (each: baseline run + 9–10 scenarios × (pipeline + snapshot + A/B/C) + recoveries),
-peak RSS ~285 MB. Pipeline runs 18–29 s (Marquez/Jaeger exporters off; phase-1 timings had them on, so this is not a
-like-for-like speed-up). Fake investigations 0.5–1.0 s, 5–13 tool calls. Snapshots: ~13 k rows per run. LLM spend: US$ 0.
+Dev eval ~5:30 wall, final ~5:50 wall (each: baseline run + 9-10 scenarios × (pipeline + snapshot + A/B/C) + recoveries),
+peak RSS ~285 MB. Pipeline runs 18-29 s (Marquez/Jaeger exporters off; phase-1 timings had them on, so this is not a
+like-for-like speed-up). Fake investigations 0.5-1.0 s, 5-13 tool calls. Snapshots: ~13 k rows per run. LLM spend: US$ 0.
 
 ## 6. Status
 

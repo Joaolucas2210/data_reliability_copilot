@@ -1,4 +1,4 @@
-# ADR-0001 — Stack and pinned versions
+# ADR-0001: Stack and pinned versions
 
 - **Status:** Accepted (2026-10-09)
 - **Deciders:** project owner (Staff Engineer role)

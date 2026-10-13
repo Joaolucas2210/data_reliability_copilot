@@ -1,4 +1,4 @@
-# ADR-0010 — Python CLI + Make + Docker Compose; Postgres job queue; no orchestrator yet
+# ADR-0010: Python CLI + Make + Docker Compose; Postgres job queue; no orchestrator yet
 
 - **Status:** Accepted (2026-10-09)
 - **Deciders:** project owner (Staff Engineer role)

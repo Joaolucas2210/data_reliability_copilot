@@ -1,6 +1,6 @@
 # Live evaluation results template
 
-**Status: not run — blocked on credentials.** This file is a template, not evidence of a live evaluation.
+**Status: not run (blocked on credentials).** This file is a template, not evidence of a live evaluation.
 Copy to `<date>/RESULTS.md` after running the frozen protocol; retain raw artifacts and negative results.
 
 | Metadata | Value |

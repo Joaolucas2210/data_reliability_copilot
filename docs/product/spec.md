@@ -1,4 +1,4 @@
-# Product specification — Data Reliability Copilot (phase 1)
+# Product specification: Data Reliability Copilot (phase 1)
 
 ## Problem
 
@@ -21,7 +21,7 @@ Time to an explained diagnosis is long, and conclusions are often not traceable 
 2. A failing check **opens or updates an incident** (rules decide; the agent never decides whether an incident exists).
 3. Collect evidence: test results, logs, metadata, lineage, schema, model changes, bounded samples.
 4. One **investigation agent** forms and tests hypotheses using bounded, read-only tools.
-5. Output a **structured diagnosis**: facts (each citing evidence with a verbatim quote), hypotheses with status, contradicting evidence, missing information, scope, next step — or an **abstention**.
+5. Output a **structured diagnosis**: facts (each citing evidence with a verbatim quote), hypotheses with status, contradicting evidence, missing information, scope, next step, or an **abstention**.
 6. Propose recovery **only from an allow-listed playbook** when the evidence supports it.
 7. **Validate recovery in an isolated sandbox** (separate DB + role) and compare before/after.
 8. A human approves or rejects. Every state change is in the audit log. Nothing is applied to production in this phase.

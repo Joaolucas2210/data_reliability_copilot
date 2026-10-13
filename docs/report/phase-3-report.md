@@ -1,13 +1,13 @@
-# Phase 3 report — portfolio packaging, signatures and evaluation boundaries
+# Phase 3 report: portfolio packaging, signatures and evaluation boundaries
 
 Date: 2026-10-10. Provider: **FAKE only** (`fake-v2`, unchanged hash `66a86a5855b34aee`).
-LIVE investigation, semantic judge quality and human calibration: **not run — blocked on credentials**.
+LIVE investigation, semantic judge quality and human calibration: **not run, blocked on credentials**.
 No production remediation or cloud apply was performed.
 
 ## Changes
 
 - README problem/principle/stack/results tables, existing architecture link, CI badges, phase status;
-  GitHub metadata suggestions and a 3–4 minute demo script matching the existing CLI/UI.
+  GitHub metadata suggestions and a 3-4 minute demo script matching the existing CLI/UI.
 - Incident fingerprint v2: sorted failing checks, run-local model code checksums and snapshot discrepancy
   dates. Unknown signals isolate the run; original run linkage preserves retries after recurrence.
   LOSS-01 and TRF-01 no longer merge in the same-app-DB regression. ADR-0016 records limits.

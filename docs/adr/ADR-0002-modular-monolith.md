@@ -1,4 +1,4 @@
-# ADR-0002 — Modular monolith with a separate worker process
+# ADR-0002: Modular monolith with a separate worker process
 
 - **Status:** Accepted (2026-10-09)
 - **Deciders:** project owner (Staff Engineer role)

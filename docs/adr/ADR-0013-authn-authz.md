@@ -1,4 +1,4 @@
-# ADR-0013 — Dev-only header roles now; Entra ID app roles before any cloud exposure
+# ADR-0013: Dev-only header roles now; Entra ID app roles before any cloud exposure
 
 - **Status:** Accepted (2026-10-09) for local use. **Blocks** any internet-reachable deployment until Entra ID auth is implemented.
 - **Deciders:** project owner (Staff Engineer role)

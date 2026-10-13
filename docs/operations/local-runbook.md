@@ -47,7 +47,7 @@ Disk: `.venv` ≈ 1 GB (dbt + MLflow + LangGraph); Playwright Chromium ≈ 680 M
 |---|---|
 | `connection refused :55432` | `make up` |
 | `permission denied for database warehouse` in a validation | expected for `sandbox_rw` (that is the isolation check); if it appears for `dbt_prod`, the volume was initialised by an older `init.sql` → `make destroy && make demo` |
-| validation `refusing to run` | an isolation check failed — read `validation_run.isolation_checks`; do not bypass |
+| validation `refusing to run` | an isolation check failed: read `validation_run.isolation_checks`; do not bypass |
 | leftover `sandbox_*` databases | `make gc` |
 | investigation stuck `running` | worker died: its lease expires after 120 s and the next `make worker` reclaims the job; or `drc cancel <investigation_id>` |
 | `dbt deps` fails offline | packages come from hub.getdbt.com; cache `dbt/dbt_packages` |

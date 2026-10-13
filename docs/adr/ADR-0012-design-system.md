@@ -1,4 +1,4 @@
-# ADR-0012 — Small in-repo design system on CSS custom properties, no UI library
+# ADR-0012: Small in-repo design system on CSS custom properties, no UI library
 
 - **Status:** Accepted (2026-10-09)
 - **Deciders:** project owner (Staff Engineer role)

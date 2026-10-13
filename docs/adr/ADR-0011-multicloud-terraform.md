@@ -1,4 +1,4 @@
-# ADR-0011 — Multicloud via per-cloud Terraform roots, Azure as reference path
+# ADR-0011: Multicloud via per-cloud Terraform roots, Azure as reference path
 
 - **Status:** Accepted (2026-10-09). Static validation only; no plan/apply executed.
 - **Deciders:** project owner (Staff Engineer role)
@@ -18,7 +18,7 @@ budget filters ([equivalence-matrix.md](../multicloud/equivalence-matrix.md)).
    vs `tier`), and it forces lowest-common-denominator features.
 2. **Per-cloud roots + shared application contract** (chosen): each cloud is written idiomatically. Portability
    lives in the app's runtime contract (image, commands, env vars, Postgres layout) and in an equivalence
-   test suite (E1–E10).
+   test suite (E1-E10).
 3. **Kubernetes everywhere (AKS/EKS/GKE) + Helm**: maximizes runtime sameness, but adds cluster operations,
    fixed control-plane/node cost and a skill set the MVP does not need.
 4. **Pulumi / CDKTF**: real programming languages for IaC. That's not a concrete benefit here, and Terraform is
@@ -67,6 +67,6 @@ budget filters ([equivalence-matrix.md](../multicloud/equivalence-matrix.md)).
 ## Revisit when
 
 - A second cloud gets an application path. Re-check whether a shared module is now justified by **two real callers**.
-- E2–E10 fail on a cloud because of a structural difference (e.g. Postgres role model). The app contract may need to change.
+- E2-E10 fail on a cloud because of a structural difference (e.g. Postgres role model). The app contract may need to change.
 - Operational load or the number of services grows enough that Kubernetes (alternative 3) pays for itself.
 - Terraform/OpenTofu licensing or provider support changes materially.

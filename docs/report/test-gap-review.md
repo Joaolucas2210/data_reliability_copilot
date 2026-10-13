@@ -1,4 +1,4 @@
-# Test gap review — 2026-10-13
+# Test gap review: 2026-10-13
 
 Staff-level review of what the suite proves and what it does not. Measured on the round in
 [`docs/evidence/round-2026-10-13`](../evidence/round-2026-10-13/RUNS.md): 51 tests, branch coverage 67.4%.
@@ -17,7 +17,7 @@ Coverage is a map of unexercised code, not a quality score; the ranking below is
 
 ## Open, ranked
 
-**P0 — would change a production or credibility decision**
+**P0: would change a production or credibility decision**
 
 1. **The LIVE adapter has never made a call.** `llm.py` `_call`, refusal handling and fallback sit at
    60% coverage; the unit test uses a stub. A zero-cost next step is a contract test that replays a recorded
@@ -28,7 +28,7 @@ Coverage is a map of unexercised code, not a quality score; the ranking below is
    (43% coverage). Add a test that really deletes on a throwaway run and checks that open-incident
    runs survive.
 
-**P1 — correctness under concurrency and failure**
+**P1: correctness under concurrency and failure**
 
 4. `worker.claim` uses `FOR UPDATE SKIP LOCKED`, but no test claims from two connections at once.
 5. API conflict paths: 409s on review, status and validation, the double-start race guarded by
@@ -39,7 +39,7 @@ Coverage is a map of unexercised code, not a quality score; the ranking below is
    (`evaluate._dismiss_open()` dismisses open incidents). The snapshot test is skipped unless an eval ran
    first. Use a per-session template database, or a fixture that builds its own runs.
 
-**P2 — measurement and hygiene**
+**P2: measurement and hygiene**
 
 8. Coverage is not measured in CI and has no floor. `cli.py` shows 0% because subprocesses are not measured
    (`COVERAGE_PROCESS_START`). The per-scenario injections (`scenarios.py` 58%) run only inside `drc eval`.

@@ -3,7 +3,7 @@
 Base path `/api`. JSON. Timestamps ISO-8601 UTC. Field names match `src/drc/domain.py` and
 `src/drc/migrations/0001_init.sql`. All list endpoints are bounded (`limit` ≤ 200).
 
-## Auth (local/dev only — see ADR-0013)
+## Auth (local/dev only: see ADR-0013)
 
 `DRC_AUTH_MODE=dev`: the caller sends `X-DRC-Role: viewer | investigator | approver`.
 Missing header → `viewer`. In cloud mode the role comes from Entra ID app roles (not implemented yet).
@@ -27,7 +27,7 @@ Errors: `{"error": {"code": "forbidden" | "not_found" | "conflict" | "invalid", 
 | POST | `/api/incidents/{id}/investigations` | `202 {investigation_id, job_id}` (idempotent via `Idempotency-Key` header) |
 | GET | `/api/investigations/{id}` | `Investigation` (below) |
 | POST | `/api/investigations/{id}/review` | body `{decision: "approve"\|"reject", note}` → `Investigation` |
-| POST | `/api/proposals/{id}/validations` | `202 {validation_run_id, job_id}` — the queued validation is created before enqueueing the worker job |
+| POST | `/api/proposals/{id}/validations` | `202 {validation_run_id, job_id}`: the queued validation is created before enqueueing the worker job |
 | POST | `/api/investigations/{id}/cancel` | `202 {result: "cancelled" \| "cancel_requested"}`; 409 if not queued/running (investigator+) |
 | GET | `/api/validation-runs/{id}` | `ValidationRun` |
 | GET | `/api/evaluations/latest` | `{runs: [EvalRun]}` |
@@ -56,4 +56,4 @@ EvalRun       {id, created_at, split: dev|final, system: A_rules|B_summary_llm|C
               prompt_version, metrics: {...}, per_scenario: [{scenario_id, expected, got, correct, unsupported_claims, ...}]}
 ```
 
-UI must render `mode: "fake"` and `cost_status != "measured"` visibly. `cost_usd: null` means unknown — never show it as 0.
+UI must render `mode: "fake"` and `cost_status != "measured"` visibly. `cost_usd: null` means unknown, never show it as 0.

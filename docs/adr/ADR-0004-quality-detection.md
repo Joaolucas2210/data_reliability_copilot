@@ -1,4 +1,4 @@
-# ADR-0004 — Rules detect, the agent investigates; five distinct quality mechanisms
+# ADR-0004: Rules detect, the agent investigates; five distinct quality mechanisms
 
 - **Status:** Accepted (2026-10-09)
 - **Deciders:** project owner (Staff Engineer role)
@@ -52,7 +52,7 @@ management, the column-level lineage UI, catalog and AI agents. If we ever do, i
 
 - **Anomaly detection is not detecting anything yet.** `volume_anomalies` returned PASS with a single day of history:
   there is no training window, so the PASS carries no information. It stays at warn severity and is excluded from claims until it has more than 14 days of history.
-- Elementary's on-run-start/end hooks add about 1.3–1.4 s per dbt invocation (observed "OK hook … in 1.40s"/"1.34s"). That is acceptable now, but it multiplies across sandbox runs.
+- Elementary's on-run-start/end hooks add about 1.3-1.4 s per dbt invocation (observed "OK hook … in 1.40s"/"1.34s"). That is acceptable now, but it multiplies across sandbox runs.
 - Control totals come from our generator (ADR-0003), so they are not truly independent.
 
 ## Evidence

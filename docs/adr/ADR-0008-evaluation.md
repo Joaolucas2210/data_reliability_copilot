@@ -1,4 +1,4 @@
-# ADR-0008 — Ground-truth benchmark with deterministic scoring; A/B/C comparison; MLflow tracking
+# ADR-0008: Ground-truth benchmark with deterministic scoring; A/B/C comparison; MLflow tracking
 
 - **Status:** Accepted (2026-10-09)
 - **Deciders:** project owner (Staff Engineer role)
@@ -73,7 +73,7 @@ and agent with tools (C). Deterministic checks are preferred, with LLM-as-judge 
   calibrated against at least 50 human-labelled facts, with its agreement rate reported.
 - At least 10 implemented scenarios exist. Freeze the final split and stop running it during prompt iteration.
 
-## Phase 3 amendment — optional fact judge
+## Phase 3 amendment: optional fact judge
 
 `judge.py` implements the [judge-v1 rubric](../benchmark/judge-rubric.md): supported, weakly_supported,
 unsupported, not_applicable per observed fact plus overall/rationale/model/prompt. Enabled for live;

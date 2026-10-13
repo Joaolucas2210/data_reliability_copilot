@@ -10,12 +10,12 @@ Code: `src/drc/recovery.py`; playbooks: `recovery/playbooks/<id>/`; decision: AD
 | Separate credentials | role `sandbox_rw` (non-superuser) has no CONNECT on `warehouse`, `app` | `sandbox_role_cannot_connect_warehouse/app` expect `permission denied for database` |
 | Read-only snapshot | `copilot_reader` (read-only txns) copies `raw` + `ops` | per-table `count:md5` of source vs copy |
 | Production untouched | hash of `raw.payments`, `stg_payments`, `fct_payments`, `rpt_daily_collections` before/after | `production_warehouse_unchanged` |
-| Separate artifacts | `var/validations/<id>/{baseline_project,project,compile,dbt_build,…}` | — |
+| Separate artifacts | `var/validations/<id>/{baseline_project,project,compile,dbt_build,…}` | - |
 | Fail closed | any isolation check false → refuse to run, still drop the sandbox | observed in-session (first run refused due to a matcher bug) |
 | Cleanup | `DROP DATABASE … WITH (FORCE)` in `finally`; `drc gc` drops uncleaned sandboxes after 1 h | `cleaned_up_at` set |
-| Limits | sandbox role `statement_timeout=60s`, dbt 300 s/step, `threads: 2` | — |
+| Limits | sandbox role `statement_timeout=60s`, dbt 300 s/step, `threads: 2` | - |
 
-## Stages — and what each does *not* prove
+## Stages and what each does *not* prove
 
 | Stage | Proves | Does not prove |
 |---|---|---|
@@ -49,6 +49,6 @@ production fingerprints unchanged. See ADR-0014.
   compromise is not contained. Next step for cloud: a separate Flexible Server (or ephemeral container) for sandboxes.
 - `sandbox_rw` has `CREATEDB` (needed to create its sandboxes) and CONNECT on the `postgres` maintenance DB.
 - Playbooks are trusted repo code. Running **AI-generated** SQL needs more: a separate server, no network
-  egress, Jinja sandboxing/macro allow-list, resource quotas — separate evolution (backlog).
+  egress, Jinja sandboxing/macro allow-list, resource quotas, separate evolution (backlog).
 - "Recovery validated" means *this playbook fixed this snapshot*. It is not a claim that applying it to
   production is safe.

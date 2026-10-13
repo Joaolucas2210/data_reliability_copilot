@@ -1,4 +1,4 @@
-# ADR-0014 — Per-run warehouse snapshots and per-run project copies
+# ADR-0014: Per-run warehouse snapshots and per-run project copies
 
 - **Status:** Accepted (2026-10-09, phase 2).
 - **Deciders:** project owner (Staff Engineer role)
@@ -6,15 +6,15 @@
 ## Context
 
 Phase 1 tools read the *current* warehouse. Re-investigating an incident after a newer pipeline run therefore saw newer
-data while labelling it with the incident's run id — observed in-session: a no-fault incident re-investigated after
+data while labelling it with the incident's run id, observed in-session: a no-fault incident re-investigated after
 the DUP-01 demo abstained because it saw DUP-01's duplicates. Evidence must describe the data the incident was detected
 on. Separately, scenarios that change transformation code had to patch models somewhere, and recovery had to validate
-against the code that actually produced the incident — not whatever is in the repo now.
+against the code that actually produced the incident, not whatever is in the repo now.
 
 ## Alternatives
 
 1. **Keep live reads and flag staleness** (phase-1 mitigation). Honest but useless for the investigation.
-2. **Postgres time travel** — not available natively; would need temporal tables / audit triggers on every table.
+2. **Postgres time travel**: not available natively; would need temporal tables / audit triggers on every table.
 3. **Schema per run for the whole pipeline** (raw/staging/marts built inside `run_<id>`). Cleanest isolation and enables
    concurrent runs, but changes the dbt layout, the reader grants and every model reference.
 4. **Copy the run's relevant relations into `snap_<run_id>` after the run** (chosen) + **copy the dbt project into the run
@@ -27,7 +27,7 @@ against the code that actually produced the incident — not whatever is in the 
   that copy. `pipeline_run.project_dir` records it.
 - After dbt, `snapshot_run` creates `snap_<run_id>` with `CREATE TABLE AS` for every relation in `raw`, `ops`, `staging`,
   `marts` (tables named `<schema>__<table>`), one savepoint per relation. Unreadable relations (e.g. a view whose cast fails
-  on drifted data — seen in SCH-02) are skipped and listed in the `pipeline_run.finished` audit event; the snapshot never
+  on drifted data, seen in SCH-02) are skipped and listed in the `pipeline_run.finished` audit event; the snapshot never
   fails the pipeline. `pipeline_run.snapshot_schema` records it.
 - Tools resolve allow-listed datasets to the snapshot (`tools._rel`); evidence `source` is
   `warehouse:snap_<run_id>/<dataset>` and `version` is the snapshot schema. Runs without a snapshot fall back to live
@@ -56,7 +56,7 @@ against the code that actually produced the incident — not whatever is in the 
 
 - `test_evidence_reads_the_incident_runs_snapshot_not_current_state` (integration) passes.
 - Phase-2 dev and final benchmark runs: all investigations read `snap_<run_id>`; the SCH-02 final run first **crashed the
-  pipeline** in the snapshot step (unreadable view) — fixed with per-relation savepoints, then re-run (policy unchanged).
+  pipeline** in the snapshot step (unreadable view): fixed with per-relation savepoints, then re-run (policy unchanged).
 - Recovery validation records `source: snap_<run>.raw__payments` per table with matching `count:md5`.
 
 ## Revisit when

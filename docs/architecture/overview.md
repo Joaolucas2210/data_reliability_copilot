@@ -72,7 +72,7 @@ flowchart TB
 
 ## Deployment
 
-Local (implemented, Docker Compose profiles — `docs/operations/local-runbook.md`):
+Local (implemented, Docker Compose profiles: `docs/operations/local-runbook.md`):
 
 ```mermaid
 flowchart LR
@@ -92,7 +92,7 @@ flowchart LR
   vite --> py
 ```
 
-Azure reference (Terraform written and validated, **not applied** — ADR-0011):
+Azure reference (Terraform written and validated, **not applied**: ADR-0011):
 
 ```mermaid
 flowchart LR
@@ -107,7 +107,7 @@ flowchart LR
   end
 ```
 
-## Main sequence — incident to reviewed recovery
+## Main sequence: incident to reviewed recovery
 
 ```mermaid
 sequenceDiagram

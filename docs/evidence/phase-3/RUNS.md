@@ -1,4 +1,4 @@
-# Phase 3 measurement manifest — 2026-10-10
+# Phase 3 measurement manifest: 2026-10-10
 
 Provider FAKE (`fake-v2`), judge mode `structural_fake` (`fake-judge-v1`, `judge-v1`).
 Code base: `80b9027`, plus the catalog's explicit backlog flags/comments recorded in `freeze.sha256`.

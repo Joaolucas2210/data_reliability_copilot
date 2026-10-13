@@ -1,4 +1,4 @@
-# ADR-0007 — Recovery validated only in a separate database with a separate role
+# ADR-0007: Recovery validated only in a separate database with a separate role
 
 - **Status:** Accepted (2026-10-09). Isolation is verified per run, but it is logical isolation on a shared server (see Risks).
 - **Deciders:** project owner (Staff Engineer role)

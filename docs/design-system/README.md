@@ -1,4 +1,4 @@
-# Design system — Data Reliability Copilot
+# Design system: Data Reliability Copilot
 
 A small design system for a technical investigation product. Code lives in `web/src/styles/tokens.css`,
 `web/src/styles/app.css` and `web/src/components/ui.tsx`. Live gallery: `#/gallery`, rendered with
@@ -73,7 +73,7 @@ The primary button uses `--surface` text on a `--focus` background: 6.70:1 in li
 
 | Component | Purpose | Non-color cue / a11y notes |
 |---|---|---|
-| `StatusPill` | pass / warn / fail / error / skipped / unknown / info | glyph (✓ ▲ ✕ ! – ? i) + text label; glyph is `aria-hidden` |
+| `StatusPill` | pass / warn / fail / error / skipped / unknown / info | glyph (✓ ▲ ✕ ! dash ? i) + text label; glyph is `aria-hidden` |
 | `EpistemicTag` | FACT / HYPOTHESIS / RECOMMENDATION / VERIFIED | label + glyph (■ ? → ✓) + border shape (square / dashed / arrow-ish / double) |
 | `.claim` block | wraps a fact or hypothesis with its quote and citations | hypotheses use a dashed left rule |
 | `EvidenceRef` | citation chip; moves focus to `#ev-<id>` | missing refs render as dashed fail chip with "✕" and SR text "(reference not found)" |
@@ -91,7 +91,7 @@ The primary button uses `--surface` text on a `--focus` background: 6.70:1 in li
 - On first load the skip link is first in tab order. On route changes, focus moves to `<main>` and the document title updates.
 - Tabs follow the APG pattern. Arrow keys move and select; tab panels are focusable.
 - Citation chips are buttons; activating one scrolls to the evidence card and focuses it.
-- Minimum target size is 24×24 px (`--target-min`; SC 2.5.8). Buttons and tabs are 32–36 px tall.
+- Minimum target size is 24×24 px (`--target-min`; SC 2.5.8). Buttons and tabs are 32-36 px tall.
 - Motion: the spinner stops under `prefers-reduced-motion: reduce`.
 - Dev-only role switcher (`viewer` / `investigator` / `approver`) sends `X-DRC-Role` so 403 states can be exercised. It is not an auth mechanism.
 

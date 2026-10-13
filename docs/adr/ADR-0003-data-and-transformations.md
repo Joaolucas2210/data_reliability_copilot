@@ -1,4 +1,4 @@
-# ADR-0003 — PostgreSQL + dbt Core on deterministic synthetic finance data
+# ADR-0003: PostgreSQL + dbt Core on deterministic synthetic finance data
 
 - **Status:** Accepted (2026-10-09)
 - **Deciders:** project owner (Staff Engineer role)

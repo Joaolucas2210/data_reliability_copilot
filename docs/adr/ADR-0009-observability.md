@@ -1,4 +1,4 @@
-# ADR-0009 — OpenTelemetry spans, structured logs and an audit table from the first investigation
+# ADR-0009: OpenTelemetry spans, structured logs and an audit table from the first investigation
 
 - **Status:** Accepted (2026-10-09)
 - **Deciders:** project owner (Staff Engineer role)

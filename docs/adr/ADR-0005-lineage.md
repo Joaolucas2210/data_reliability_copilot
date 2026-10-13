@@ -1,4 +1,4 @@
-# ADR-0005 — OpenLineage from dbt, file transport always, Marquez as optional reference backend
+# ADR-0005: OpenLineage from dbt, file transport always, Marquez as optional reference backend
 
 - **Status:** Accepted (2026-10-09)
 - **Deciders:** project owner (Staff Engineer role)

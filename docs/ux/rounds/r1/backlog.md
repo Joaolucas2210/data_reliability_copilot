@@ -1,17 +1,17 @@
 # R1 consolidated backlog (version 523898b)
 
 Sources: E1.md, E2.md, E3.md, E4.md (+ *-scores.json). Duplicates merged; "Found by" lists evaluator finding ids.
-Effort: S < 1 h · M 1–3 h · L > 3 h. Risk: chance of regression / contract change.
+Effort: S < 1 h · M 1-3 h · L > 3 h. Risk: chance of regression / contract change.
 
 | ID | Pri | Screen / state | Problem | Principles | Found by (evidence) | Impact | Solution | Effort | Risk | Acceptance criterion |
 |---|---|---|---|---|---|---|---|---|---|---|
 | B01 | P0 | J6 Validate in sandbox; validation page queued/running | UI navigates to `#/validation-runs/undefined` (API returns `{job_id}`); validation page crashes on null `invariants`/`isolation_checks` → whole app blank; no error boundary | N1 N9 S3 S4 S7 | E1-F01 E2-F01 E3-F1 E4-F1 | Primary J6 action fails / app dies | API creates the validation_run (queued) and returns its id; page null-safe with explicit queued/running state; app-level error boundary | M | API contract change (additive field) | Click Validate → lands on the real run page; queued/running/finished render; forced render error shows recoverable boundary |
-| B02 | P1 | Investigation & validation while queued/running | No polling; stale "queued" for 35–80 s; no live region | N1 S3 S7 U9 U10 WCAG 4.1.3 | E1-F02 E2-F02 E3-F2 E4-F2 | J4/J6 cannot be followed | Poll every 2 s while non-terminal without blanking; "updated at"; polite live announcement on status change | M | Load on API (2 s, bounded to active pages) | Status changes appear within ≤3 s without reload and are announced |
+| B02 | P1 | Investigation & validation while queued/running | No polling; stale "queued" for 35-80 s; no live region | N1 S3 S7 U9 U10 WCAG 4.1.3 | E1-F02 E2-F02 E3-F2 E4-F2 | J4/J6 cannot be followed | Poll every 2 s while non-terminal without blanking; "updated at"; polite live announcement on status change | M | Load on API (2 s, bounded to active pages) | Status changes appear within ≤3 s without reload and are announced |
 | B03 | P1 | Start / Validate / Approve / Reject / Cancel | No busy/disabled state; double-click → duplicate POSTs (new idempotency key per click) | N5 S5 U9 | E1-F03 E2-F03 E3-F4 E4-(F7) | Duplicate investigations/decisions | Shared ActionButton: disabled + busy label while in flight; idempotency key fixed per intent | S | Low | Double-click sends exactly 1 POST; button shows busy state |
 | B04 | P1 | J7 review | No confirm; empty-note reject; card vanishes; no decision record; focus to body; incident stays awaiting review; timeline lacks decision/note | S4 S3 S5 S6 N1 N5 WCAG 2.4.3/4.1.3 | E1-F04 E2-F04/F05 E3-F3/F4/F19 E4-F3 | Highest-stakes action has no closure | Two-step confirm; note required for reject (inline validation); optional "also resolve incident"; persistent decision panel (decision, reviewer, time, note) with focus; decision+note in timeline | M | API additive field `review` | Decision visible after action and after reload; focus on panel; empty reject blocked with message |
 | B05 | P1 | Incident detail at 320 px | h1 of underscore tokens doesn't wrap → 58 px horizontal scroll (WCAG 1.4.10) | U5 S2 | E3-F5 E4-F4 E1-F13 E2-F16 | Reflow failure | `overflow-wrap:anywhere` on headings/long tokens | S | Low | scrollWidth ≤ viewport at 320 on every route |
 | B06 | P1 | Tables on mobile (incidents, isolation, invariants, before/after, checks) | Columns off-screen; isolation detail breaks letter by letter (table 2,651 px tall) | U5 S2 S8 | E3-F6/F14 E4-F12 E1-F13 E2-F16 | Triage/verification unreadable on phone | Stacked label/value rows under 600 px (semantics kept via ARIA roles) | M | Medium (all tables) | At 390/320 every column visible without sideways scroll; detail text wraps by word |
-| B07 | P2 | Short pages < 960 px | Shell grid rows stretch header/nav (content at y≈450–550) | U3 U5 N8 | E3-F7 E4-F11 E1-F13 | Looks broken | `grid-template-rows: auto auto 1fr` on mobile | S | Low | Header ≤ ~120 px on short mobile pages |
+| B07 | P2 | Short pages < 960 px | Shell grid rows stretch header/nav (content at y≈450-550) | U3 U5 N8 | E3-F7 E4-F11 E1-F13 | Looks broken | `grid-template-rows: auto auto 1fr` on mobile | S | Low | Header ≤ ~120 px on short mobile pages |
 | B08 | P2 | Status pills everywhere | Same status rendered with different tone/icon/label; raw `awaiting_review`; ✕ for "open"; "?" for internal; cancelled = queued tone | N4 S1 U4 U6 N2 | E1-F07 E2-F20 E3-F8 E4-F20 | Colour/icon lose meaning | One per-entity status dictionary (label, tone, icon); severity on its own scale | M | Low | Same entity+status renders identically on every screen; no raw codes |
 | B09 | P2 | Start/Validate/Cancel by role | Viewer sees enabled actions that fail after click; error far from control; inconsistent denial styles | N5 N4 S5 U9 | E1-F12 E2-F07 E3-F9/F10 E4-F7 | Wasted actions, missed errors | Disabled with visible reason for insufficient role; errors inline next to the control | S | Low | Viewer sees disabled action + reason; no 403 path from UI |
 | B10 | P2 | Start investigation with active/awaiting one | Duplicates pile up | N5 S8 | E1-F03 E2-F08 E3-F9 | Duplicate work | Notice linking to the active investigation; explicit "start another anyway" | S | Low | Active investigation linked; second start needs explicit confirm |
@@ -26,20 +26,20 @@ Effort: S < 1 h · M 1–3 h · L > 3 h. Risk: chance of regression / contract c
 | B19 | P2 | Focus | First Tab skips skip link (StrictMode); focus to body after retry/cancel/approve; unnamed main on nav | U7 S7 WCAG 2.4.3 | E1-F14 E2-F22 E3-F23 E4-F5/F17/F18 | Keyboard users lose place | Path-compare focus logic; focus h1 on navigation; keep data during refetch | S | Low | Skip link first; focus never lands on body after actions |
 | B20 | P2 | Static permission notices | `role=alert` on load | WCAG 4.1.3 | E4-F10 E1-F20 | Noisy SR | Plain/`role=note` for static notices | S | Low | No alerts on initial render |
 | B21 | P2 | Evidence `<pre>` | Scrollable, not focusable (axe serious) | WCAG 2.1.1 U7 | E4-F16 E3-F20 E2-F19 E1-F20 | Keyboard can't scroll | `tabIndex=0` + label | S | Low | axe clean |
-| B22 | P2 | Investigation density | 7–14k px; all evidence expanded; raw JSON in steps | N8 N7 U1 | E1-F16 E2-(N7) E3-F15 | Review buried | Collapse evidence; key/value step details | M | Medium | Investigation ≤ ~3k px desktop with evidence collapsed |
+| B22 | P2 | Investigation density | 7-14k px; all evidence expanded; raw JSON in steps | N8 N7 U1 | E1-F16 E2-(N7) E3-F15 | Review buried | Collapse evidence; key/value step details | M | Medium | Investigation ≤ ~3k px desktop with evidence collapsed |
 | B23 | P2 | Evaluations | No accuracy summary/matrix; metrics unexplained | N7 N2 U1 S8 | E1-F19 E3-F21 E4-F15 | J9 slow | Accuracy summary, labelled metrics, matrix | M | Low | Per-system correct/total visible; metrics defined |
 | B24 | P2 | Cancel | No confirm; message wiped; cancelled copy says "not available yet" | S6 S3 N2 | E2-F06 E4-F6 E1-F18 | Accidental cancel; misleading state | Confirm; persistent cancelled banner; final-state copy | S | Low | Cancelled state explained; confirm required |
 | B25 | P2 | Help / gallery | No glossary; gallery in primary nav; sample links → Not found; gallery states/landmarks/h1s | N10 N8 U4 U7 | E1-F15 E3-F25 E4-F19 E2-F19 | No help | Glossary page; gallery under "Design system"; inert fixtures; unique landmarks | M | Low | Glossary reachable; gallery axe clean |
-| B26 | P3 | Polish | Health key message muted; spacing glitches; kv typography; doubled quotes; truncated isolation detail; loading heading; pill wrapping (1.4.12) | U1 U2 U3 U8 | E3-F22/F24/F27 E1-F16 E4-F21/F24 E2-F21 | Polish | Targeted fixes | S–M | Low | Items individually resolved |
+| B26 | P3 | Polish | Health key message muted; spacing glitches; kv typography; doubled quotes; truncated isolation detail; loading heading; pill wrapping (1.4.12) | U1 U2 U3 U8 | E3-F22/F24/F27 E1-F16 E4-F21/F24 E2-F21 | Polish | Targeted fixes | S-M | Low | Items individually resolved |
 
 ## Selection for implementation (round 1)
 
-**N = 10** (default 5, raised): B01–B06 are all P0/P1 and share the same code paths (data hook, action buttons, review
+**N = 10** (default 5, raised): B01-B06 are all P0/P1 and share the same code paths (data hook, action buttons, review
 card, DataTable); splitting them across rounds would mean repeated edits to the same files and re-evaluating
-known-broken flows. B07–B12 are small, high-reach P2s that sit in the same files (shell CSS, status pills, action
+known-broken flows. B07-B12 are small, high-reach P2s that sit in the same files (shell CSS, status pills, action
 gating, LoadView/not-found) and are prerequisites for later items.
 
 Selected: **B01, B02, B03, B04, B05, B06, B07, B08, B09+B10, B11+B12** (B09/B10 and B11/B12 each touch one component).
 Focus parts of B19 that live in the same code (first-load focus, focus after actions) are included with B02/B04/B12.
 
-Deferred to next rounds (not discarded): B13–B18, B20–B26.
+Deferred to next rounds (not discarded): B13-B18, B20-B26.

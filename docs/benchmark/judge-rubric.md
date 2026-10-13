@@ -1,4 +1,4 @@
-# Groundedness judge — judge-v1
+# Groundedness judge: judge-v1
 
 `src/drc/judge.py` is evaluation-only. It does not replace `citations.verify`, deterministic exact
 cause-set scoring, human decisions, or recovery isolation. It grades **observed facts**, not the

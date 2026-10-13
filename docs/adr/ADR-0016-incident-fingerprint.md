@@ -1,4 +1,4 @@
-# ADR-0016 — Cause-discriminating incident signatures
+# ADR-0016: Cause-discriminating incident signatures
 
 Status: Accepted (phase 3).
 

@@ -15,8 +15,8 @@ region before any apply.
 |---|---|---|---|---|
 | **Containers (api, worker)** | Container Apps (consumption profile), revisions, `min_replicas=0` | ECS on Fargate (service + task definition) behind an ALB; *alternative:* App Runner | Cloud Run services (api) + Cloud Run service with `min-instances=1` or a worker pool (worker) | Scale-to-zero: native in Container Apps and Cloud Run. Fargate services do not scale to zero by themselves: set `desired_count=0` to stop. Container Apps and Cloud Run include ingress/TLS; ECS needs an ALB, which bills per hour even when idle. |
 | **One-off jobs (migrations, sandbox validation)** | Container Apps Jobs (manual trigger) | ECS `RunTask` (Fargate) | Cloud Run Jobs | All support run-to-completion with a timeout. Retry semantics differ: we set retries to 0 and let the app retry. |
-| **PostgreSQL** | Azure Database for PostgreSQL – Flexible Server (v17) | RDS for PostgreSQL (alternative: Aurora PostgreSQL) | Cloud SQL for PostgreSQL | Separate databases (`warehouse`, `app`, `sandbox_*`) and roles (`init.sql` model) work the same on all three. Differences: the admin role is not a true superuser on any of them (`azure_pg_admin`, `rds_superuser`, `cloudsqlsuperuser`), so `CREATE ROLE … CREATEDB` and `REVOKE CONNECT … FROM PUBLIC` must be re-tested on each. Extension allow-lists differ. Burstable SKUs: B1ms (Azure), db.t4g.micro (AWS), shared-core db-f1-micro/db-g1-small (GCP, no SLA). |
-| **Backups / PITR** | Automatic, 7–35 days retention, PITR; geo-redundant optional at creation only | Automated backups 0–35 days, PITR; snapshots | Automated backups + PITR (WAL-based), retention configurable | Azure fixes geo-redundancy at server creation (changing it means rebuilding the server). We keep it OFF in dev and record that as a known RPO trade-off. |
+| **PostgreSQL** | Azure Database for PostgreSQL Flexible Server (v17) | RDS for PostgreSQL (alternative: Aurora PostgreSQL) | Cloud SQL for PostgreSQL | Separate databases (`warehouse`, `app`, `sandbox_*`) and roles (`init.sql` model) work the same on all three. Differences: the admin role is not a true superuser on any of them (`azure_pg_admin`, `rds_superuser`, `cloudsqlsuperuser`), so `CREATE ROLE … CREATEDB` and `REVOKE CONNECT … FROM PUBLIC` must be re-tested on each. Extension allow-lists differ. Burstable SKUs: B1ms (Azure), db.t4g.micro (AWS), shared-core db-f1-micro/db-g1-small (GCP, no SLA). |
+| **Backups / PITR** | Automatic, 7-35 days retention, PITR; geo-redundant optional at creation only | Automated backups 0-35 days, PITR; snapshots | Automated backups + PITR (WAL-based), retention configurable | Azure fixes geo-redundancy at server creation (changing it means rebuilding the server). We keep it OFF in dev and record that as a known RPO trade-off. |
 | **Object storage (run artifacts, lineage, eval)** | Storage Account (Blob), versioning, lifecycle policy | S3 + versioning + lifecycle | Cloud Storage + versioning + lifecycle | Equivalent for our use (write-once artifacts). Azure: we disable shared keys (Entra ID only). |
 | **Container registry** | ACR Basic | ECR (immutable tags, scan on push) | Artifact Registry (Docker, immutable tags) | ACR Basic has no tag immutability per repo by default. We rely on CI using git-SHA tags and forbidding `latest` (Terraform variable validation). |
 | **Workload identity (app → cloud)** | User-assigned managed identity on the Container App | ECS task role (IAM) | Service account attached to Cloud Run | All three issue short-lived tokens with no static keys. **DB auth differs:** Entra ID for Flexible Server, IAM DB auth for RDS, IAM DB auth for Cloud SQL. This phase uses password roles from the secret store on all three: DB auth is not equivalent yet. |
@@ -36,7 +36,7 @@ The application depends only on these. Anything cloud-specific stays in Terrafor
 1. **Container image** `drc:<git-sha>`, commands `drc api | drc worker | drc migrate`.
 2. **Env vars**: `DRC_PG_HOST`, `DRC_PG_PORT`, `DRC_*_PASSWORD`, `ANTHROPIC_API_KEY` (optional), `OTEL_*`.
 3. **PostgreSQL ≥ 17**, with the database/role layout of `infra/local/init.sql`.
-4. **Object store** — *not yet abstracted*. The slice writes artifacts to the local filesystem (`var/`).
+4. **Object store**: *not yet abstracted*. The slice writes artifacts to the local filesystem (`var/`).
    Before any cloud run, this needs a small storage port (local / Blob / S3 / GCS); see parity-gap.
 
 ## Equivalence and portability test criteria
@@ -56,16 +56,16 @@ A cloud is "at parity" only when **all** of these pass in that cloud, run by CI 
 | E9 | Backup/restore | PITR restore into a new server, then E5 passes against it |
 | E10 | Destroy | `terraform destroy` leaves no tagged resources (inventory query returns empty), except the state bucket |
 
-Results get recorded per cloud in `docs/multicloud/parity-gap.md`. None of E2–E10 has been executed yet.
+Results get recorded per cloud in `docs/multicloud/parity-gap.md`. None of E2-E10 has been executed yet.
 
 ## Sources (official documentation, consulted 2026-10-09)
 
-- Terraform providers: registry.terraform.io — hashicorp/azurerm 5.9.0, hashicorp/aws 6.68.0, hashicorp/google 8.6.0, hashicorp/random 3.9.1 (versions from `registry.terraform.io/v1/providers/<ns>/<name>`).
+- Terraform providers on registry.terraform.io: hashicorp/azurerm 5.9.0, hashicorp/aws 6.68.0, hashicorp/google 8.6.0, hashicorp/random 3.9.1 (versions from `registry.terraform.io/v1/providers/<ns>/<name>`).
 - Terraform S3 backend `use_lockfile`: developer.hashicorp.com/terraform/language/backend/s3
 - Terraform azurerm backend (blob lease locking, `use_azuread_auth`, `use_oidc`): developer.hashicorp.com/terraform/language/backend/azurerm
 - Terraform gcs backend: developer.hashicorp.com/terraform/language/backend/gcs
 - Azure Container Apps (scale to zero, jobs, Key Vault secret references): learn.microsoft.com/azure/container-apps/
-- Azure Database for PostgreSQL Flexible Server (backup retention 7–35 d, geo-redundancy at creation): learn.microsoft.com/azure/postgresql/flexible-server/
+- Azure Database for PostgreSQL Flexible Server (backup retention 7-35 d, geo-redundancy at creation): learn.microsoft.com/azure/postgresql/flexible-server/
 - Workload identity federation for GitHub (Azure): learn.microsoft.com/entra/workload-id/workload-identity-federation
 - GitHub OIDC with AWS: docs.github.com/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services
 - GCP Workload Identity Federation with deployment pipelines: cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines

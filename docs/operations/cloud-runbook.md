@@ -9,7 +9,7 @@ static checks, plus `plan` on manual dispatch.
 
 - Terraform 1.16.5 (or `infra/terraform/check.sh`, which runs it in Docker).
 - An operator identity with rights to create the state resources (Owner on the subscription / admin on the
-  account / `roles/owner` on the project) — used **only** for bootstrap.
+  account / `roles/owner` on the project): used **only** for bootstrap.
 - Never put secrets in `*.tfvars`. Copy `terraform.tfvars.example` → `terraform.tfvars` (gitignored).
 
 ## 1. Bootstrap order (once per cloud)
@@ -19,7 +19,7 @@ static checks, plus `plan` on manual dispatch.
 | 1 | `cd azure/bootstrap && terraform init && terraform apply` | `cd aws/bootstrap && …` | `cd gcp/bootstrap && …` |
 | 2 | Write outputs into `envs/dev/backend.hcl` (`resource_group_name`, `storage_account_name`) | Pass `bucket=` as `-backend-config` | Pass `bucket=` as `-backend-config` |
 | 3 | Record `ci_client_id` as GitHub env var `AZURE_CLIENT_ID` (with `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`) | Apply `aws/foundation` and record `AWS_CI_ROLE_ARN` | Apply `gcp/foundation` and record `GCP_WIF_PROVIDER`, `GCP_CI_SERVICE_ACCOUNT` |
-| 4 | Grant the CI identity roles on the env RG (Reader for plan, Contributor + User Access Administrator scoped to the RG for apply) | — (policy is in the foundation) | Grant the plan/apply roles on the project |
+| 4 | Grant the CI identity roles on the env RG (Reader for plan, Contributor + User Access Administrator scoped to the RG for apply) |: (policy is in the foundation) | Grant the plan/apply roles on the project |
 
 Bootstrap state is **local** by design. After step 1, either keep `terraform.tfstate` in a restricted operator
 vault or migrate it into the bucket/container it created (`terraform init -migrate-state` after adding a

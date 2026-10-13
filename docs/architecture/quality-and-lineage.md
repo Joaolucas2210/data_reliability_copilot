@@ -13,15 +13,15 @@
 
 Detection is rules-only; the agent never decides that an incident exists (ADR-0004).
 In DUP-01 four independent checks fire (dbt `unique_fct_payments_payment_id`, `inv_payment_id_unique`,
-`inv_reconciliation_amount`, `inv_reconciliation_count`) while contracts and freshness pass — "pipeline succeeded,
+`inv_reconciliation_amount`, `inv_reconciliation_count`) while contracts and freshness pass, "pipeline succeeded,
 report wrong". In INS-01 **only** the reconciliation invariant fires.
 
 ## Elementary: what is used and what is OSS
 
-Used: the `elementary-data/elementary` **dbt package 0.26.0** (OSS) — its on-run hooks store run/test results in
+Used: the `elementary-data/elementary` **dbt package 0.26.0** (OSS): its on-run hooks store run/test results in
 the `elementary` schema, and its anomaly test. Installed but not used for alerting: the `edr` CLI
 (`elementary-data==0.26.0`, OSS). **Not used:** any Elementary Cloud (commercial) feature.
-Finding: `volume_anomalies` reported **PASS with one day of history** — it has nothing to compare against,
+Finding: `volume_anomalies` reported **PASS with one day of history**: it has nothing to compare against,
 so in this phase it is configured, not effective. Cost: its hooks add ~1.4 s to each dbt invocation (observed).
 Revisit: after ≥14 daily loads exist (needs a backfill scenario), or drop it if it adds no signal over invariants.
 

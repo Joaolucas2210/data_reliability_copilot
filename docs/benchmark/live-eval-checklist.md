@@ -1,6 +1,6 @@
 # Live evaluation checklist
 
-Status (2026-10-10): **not run — blocked on credentials**. No LIVE accuracy, cost or groundedness result exists.
+Status (2026-10-10): **not run (blocked on credentials)**. No LIVE accuracy, cost or groundedness result exists.
 
 ## Prepare
 
