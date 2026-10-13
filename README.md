@@ -10,6 +10,58 @@ on a fictional consumer-finance operation with synthetic customers, contracts, i
 is checked programmatically; the agent abstains when evidence is insufficient; recovery runs only in an
 isolated, verified sandbox; nothing is applied to production in this phase.
 
+## Demo
+
+A scripted incident, `DUP-01`: an upstream retry loads a payment batch twice. **dbt finishes successfully**, yet
+the daily collections report counts 28 payments where the independent control totals say 14.
+Every screen below is real output from `make demo` against the local stack
+([validation round 2026-10-13](docs/evidence/round-2026-10-13/RUNS.md)). The agent runs on the deterministic
+**FAKE** LLM, and the UI labels it that way.
+
+**1 — Rules detect.** The run succeeded, but four checks fail: one dbt test and three business invariants.
+An incident opens with a full audit timeline.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/demo/img/incident-detail-dark.png">
+  <img alt="Incident page: four failing checks and an audit timeline" src="docs/demo/img/incident-detail-light.png" width="860">
+</picture>
+
+**2 — The agent investigates, with evidence.** Twelve bounded, read-only tool calls collect 19 evidence items.
+Each fact must quote its cited evidence verbatim, or citation enforcement removes it.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/demo/img/investigation-dark.png">
+  <img alt="Investigation: facts with verbatim quotes and evidence citations" src="docs/demo/img/investigation-light.png" width="860">
+</picture>
+
+**3 — Recovery is proven in a sandbox, not applied.** The allow-listed `dedupe_payments` playbook runs on an
+isolated copy, with role isolation checks. All three invariants go from violated to holding, and production stays unchanged.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/demo/img/validation-dark.png">
+  <img alt="Sandbox validation: stages, isolation checks and invariants before and after" src="docs/demo/img/validation-light.png" width="860">
+</picture>
+
+**4 — A human decides.** Only the approver role can approve or reject. Approval never runs SQL against production.
+
+**5 — Measured against baselines.** On 10 dev scenarios, rules alone (A) and a summary-only LLM (B) get 50%.
+They diagnose loss where the evidence is insufficient or contradictory. The agent with tools (C) gets
+100%, **on the FAKE policy**, which measures the harness rather than model quality. The LIVE evaluation is
+specified, but it has not run.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/demo/img/evaluations-dark.png">
+  <img alt="Evaluation results: diagnosis accuracy by system, FAKE LLM banner" src="docs/demo/img/evaluations-light.png" width="860">
+</picture>
+
+<details><summary>The same run in the terminal</summary>
+
+<img alt="make demo terminal output" src="docs/demo/img/terminal-demo.png" width="860">
+
+</details>
+
+Walkthrough script for presenting it: [3–4 minute demo](docs/demo/SCRIPT.md).
+
 ## Principles
 
 | Boundary | Responsibility |
