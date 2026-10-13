@@ -10,6 +10,9 @@ Hugging Face unreachable). Using a Claude subscription as the app's API backend 
 an API entitlement and would not be reproducible. System C's 1.00 measures the harness plus a hand-written
 policy, **not LLM quality**.
 
+Terminology: presentation surfaces (README, UI banner, screenshot titles) call provider `fake` the
+**Simulated LLM**. Code, env vars, JSON artifacts and hashes keep `fake` / `fake-v2` unchanged.
+
 ## Environment deviation
 
 Docker's daemon could not resolve the registry (Tailscale DNS), so `make up` failed. PostgreSQL **17.11**

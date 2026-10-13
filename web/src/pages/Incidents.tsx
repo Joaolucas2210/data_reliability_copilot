@@ -243,7 +243,7 @@ export function IncidentBody({ d, onStart, onChanged }: { d: IncidentDetail; onS
                       {i.outcome && <Status entity="outcome" value={i.outcome} />}
                     </Group>
                   </Group>
-                  <Text size="xs" c="dimmed" mt={4}>Started {fmtTime(i.created_at)}{i.mode === "fake" ? " · fake LLM" : ""}</Text>
+                  <Text size="xs" c="dimmed" mt={4}>Started {fmtTime(i.created_at)}{i.mode === "fake" ? " · simulated LLM" : ""}</Text>
                 </Paper>
               ))}
             </Stack>

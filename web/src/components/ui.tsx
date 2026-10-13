@@ -60,8 +60,8 @@ export function ModeBanner({ mode, costStatus }: { mode?: "fake" | "live"; costS
   if (mode !== "fake" && (!costStatus || costStatus === "measured")) return null;
   return (
     <Alert role="note" variant="light" color="yellow" radius="lg" icon={<IconFlask size={20} />} mb="md" className="mode-banner"
-      title={mode === "fake" ? "Fake LLM — deterministic test double" : "Cost is an estimate"}>
-      {mode === "fake" && <Text size="sm">Output shows that the pipeline works, not how good a model is.</Text>}
+      title={mode === "fake" ? "Simulated LLM — deterministic policy, no model" : "Cost is an estimate"}>
+      {mode === "fake" && <Text size="sm">Output shows that the pipeline works, not how good a model is. Provider <code>fake</code> in code.</Text>}
       {costStatus && costStatus !== "measured" && (
         <Text size="sm">
           <strong>Cost {costStatus}:</strong> {costStatus === "unknown" ? "no reliable usage/price data — not zero." : "derived from a price table, not billed usage."}

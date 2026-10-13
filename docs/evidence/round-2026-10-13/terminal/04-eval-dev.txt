@@ -1,5 +1,5 @@
 $ DRC_LLM_PROVIDER=fake DRC_JUDGE=1 drc eval --split dev
-# split=dev  provider=fake  policy=fake-v2 sha256[:16]=66a86a5855b34aee (frozen)  scenarios=10
+# split=dev  Simulated LLM (provider fake: frozen deterministic policy fake-v2, sha256[:16]=66a86a5855b34aee)  scenarios=10
 # rule detection: all expected checks fired = 100%, rule false positives = 0
 
 system           accuracy  false+ abstain ok cite prec  recovery inv viol

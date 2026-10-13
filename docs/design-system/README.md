@@ -77,7 +77,7 @@ The primary button uses `--surface` text on a `--focus` background: 6.70:1 in li
 | `EpistemicTag` | FACT / HYPOTHESIS / RECOMMENDATION / VERIFIED | label + glyph (■ ? → ✓) + border shape (square / dashed / arrow-ish / double) |
 | `.claim` block | wraps a fact or hypothesis with its quote and citations | hypotheses use a dashed left rule |
 | `EvidenceRef` | citation chip; moves focus to `#ev-<id>` | missing refs render as dashed fail chip with "✕" and SR text "(reference not found)" |
-| `ModeBanner` | FAKE LLM and cost not measured | `role="note"`, text states what it means; `cost_usd: null` renders "unknown", never 0 |
+| `ModeBanner` | Simulated LLM (provider `fake`) and cost not measured | `role="note"`, text states what it means; `cost_usd: null` renders "unknown", never 0 |
 | `Card` | titled `<section>` | `aria-labelledby` → its `<h2>` |
 | `DataTable` | semantic `<table>` with `<caption>` and `th[scope=col]` | wrapped in a focusable `role="region"` so keyboard users can scroll wide tables |
 | `Timeline` | ordered audit events | `<ol>` + `<time datetime>` |

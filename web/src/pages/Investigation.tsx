@@ -76,7 +76,7 @@ export function InvestigationView({ inv, onChanged, updatedAt, showTitle = true 
         {inv.review ? <Status entity="decision" value={inv.review.decision} /> : <Status entity="investigation" value={inv.status} />}
         {inv.outcome && <Status entity="outcome" value={inv.outcome} />}
         <Text size="sm" c="dimmed">
-          {inv.llm_provider === "fake" ? "Fake LLM (no model)" : `${inv.llm_provider} · ${inv.llm_model ?? "model unknown"}`} · prompt {inv.prompt_version}
+          {inv.llm_provider === "fake" ? "Simulated LLM (no model)" : `${inv.llm_provider} · ${inv.llm_model ?? "model unknown"}`} · prompt {inv.prompt_version}
           {active && updatedAt && <> · updates automatically · last checked {fmtClock(updatedAt)}</>}
         </Text>
       </Group>

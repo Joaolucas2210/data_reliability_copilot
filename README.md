@@ -16,7 +16,7 @@ A scripted incident, `DUP-01`: an upstream retry loads a payment batch twice. **
 the daily collections report counts 28 payments where the independent control totals say 14.
 Every screen below is real output from `make demo` against the local stack
 ([validation round 2026-10-13](docs/evidence/round-2026-10-13/RUNS.md)). The agent runs on the deterministic
-**FAKE** LLM, and the UI labels it that way.
+**Simulated LLM**: a frozen, deterministic policy with no model behind it (provider `fake` in code). The UI labels it that way.
 
 **1 — Rules detect.** The run succeeded, but four checks fail: one dbt test and three business invariants.
 An incident opens with a full audit timeline.
@@ -46,12 +46,12 @@ isolated copy, with role isolation checks. All three invariants go from violated
 
 **5 — Measured against baselines.** On 10 dev scenarios, rules alone (A) and a summary-only LLM (B) get 50%.
 They diagnose loss where the evidence is insufficient or contradictory. The agent with tools (C) gets
-100%, **on the FAKE policy**, which measures the harness rather than model quality. The LIVE evaluation is
+100%, **with the Simulated LLM**, which measures the harness rather than model quality. The LIVE evaluation is
 specified, but it has not run.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/demo/img/evaluations-dark.png">
-  <img alt="Evaluation results: diagnosis accuracy by system, FAKE LLM banner" src="docs/demo/img/evaluations-light.png" width="860">
+  <img alt="Evaluation results: diagnosis accuracy by system, Simulated LLM banner" src="docs/demo/img/evaluations-light.png" width="860">
 </picture>
 
 <details><summary>The same run in the terminal</summary>
@@ -93,7 +93,7 @@ See the [full component and deployment diagrams](docs/architecture/overview.md).
 ```bash
 make setup     # Python 3.12 venv via uv + web deps
 make demo      # Postgres → synthetic data with a duplicated batch → dbt (+OpenLineage) → checks → incident
-               # → investigation (fake LLM) → recovery validated in an isolated sandbox
+               # → investigation (Simulated LLM) → recovery validated in an isolated sandbox
 make api & make web   # UI at http://127.0.0.1:5173 (link printed by make demo)
 make test      # unit + integration
 make eval      # benchmark (dev split); make eval-final for the held-out split
@@ -132,21 +132,21 @@ Guia em português: [passo a passo para iniciantes e staff engineers](docs/opera
 
 ## Results
 
-**Agent accuracy numbers below use the deterministic fake LLM (fake-v2) unless labelled LIVE.
+**Agent accuracy numbers below use the Simulated LLM, a frozen deterministic policy (`fake-v2` in code), unless labelled LIVE.
 Live evaluation is implemented but requires ANTHROPIC_API_KEY.**
 
 Historical [phase-2 evidence](docs/evidence/phase-2/) (10 dev / 9 final scenarios);
 [phase-3 measurements](docs/report/phase-3-report.md) preserve the same frozen policy and add structural judging:
 
-| System | FAKE dev exact cause-set accuracy | FAKE final accuracy | LIVE |
+| System | Simulated dev exact cause-set accuracy | Simulated final accuracy | LIVE |
 |---|---|---|---|
 | A rules | 0.50 | 0.556 | Not run |
 | B summary-only | 0.50 | 0.556 | Not run |
 | C agent + tools | 1.00 | 1.00 | Not run |
 
-The fake policy tests machinery and held-out variants, not live model quality. Phase 2's final detection
+The simulated policy tests machinery and held-out variants, not live model quality. Phase 2's final detection
 rate was 8/9 due to a subsequently corrected SCH-02 ground truth; the original result is preserved.
-Quote matching does not prove entailment. The optional groundedness judge has separate structural FAKE
+Quote matching does not prove entailment. The optional groundedness judge has separate structural (simulated)
 and semantic LIVE modes; exact cause-set scoring remains authoritative.
 See the [LIVE results template](docs/evidence/live/RESULTS_TEMPLATE.md) and [protocol](docs/benchmark/live-eval-checklist.md).
 
@@ -154,10 +154,10 @@ See the [LIVE results template](docs/evidence/live/RESULTS_TEMPLATE.md) and [pro
 
 | Phase | Status |
 |---|---|
-| [Phase 1](docs/report/phase-1-report.md) | Foundation, vertical slice, isolated recovery; fake evaluation. |
-| [Phase 2](docs/report/phase-2-report.md) | Snapshots, 19 executable scenarios, cancellation, leases and retention; fake evaluation. |
-| [Phase 3](docs/report/phase-3-report.md) | Portfolio packaging, incident signatures, optional fact judge; fake dev/final validation. |
-| [Validation round 2026-10-13](docs/evidence/round-2026-10-13/RUNS.md) | 51 tests (0 skipped), branch coverage 64% → 67%, live-data UI 13/13 axe-clean; [test gap review](docs/report/test-gap-review.md). FAKE only. |
+| [Phase 1](docs/report/phase-1-report.md) | Foundation, vertical slice, isolated recovery; simulated-LLM evaluation. |
+| [Phase 2](docs/report/phase-2-report.md) | Snapshots, 19 executable scenarios, cancellation, leases and retention; simulated-LLM evaluation. |
+| [Phase 3](docs/report/phase-3-report.md) | Portfolio packaging, incident signatures, optional fact judge; simulated-LLM dev/final validation. |
+| [Validation round 2026-10-13](docs/evidence/round-2026-10-13/RUNS.md) | 51 tests (0 skipped), branch coverage 64% → 67%, live-data UI 13/13 axe-clean; [test gap review](docs/report/test-gap-review.md). Simulated LLM only. |
 | Next | LIVE measurement and human judge calibration await credentials; cloud remains unapplied. |
 
 [ADRs](docs/adr/README.md) · [Local runbook](docs/operations/local-runbook.md) · [3–4 minute demo](docs/demo/SCRIPT.md)

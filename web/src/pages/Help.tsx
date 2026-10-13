@@ -15,7 +15,7 @@ export const TERMS: [string, string, ReactNode][] = [
   ["sandbox", "Sandbox validation", "The proposal is run on an isolated copy of the incident's data with a separate database and role. Six stages are reported separately; passing them means the playbook fixed that copy, nothing more."],
   ["review", "Human review", "An approver approves or rejects the diagnosis. The decision, reviewer, time and note are recorded and cannot be undone."],
   ["roles", "Roles", "Viewer reads everything except restricted evidence; investigator can also start investigations and sandbox validations; approver can also record review decisions."],
-  ["fake", "Fake LLM", "A deterministic test double used when no model is configured. Its results show that the workflow works, not how good a model is."],
+  ["fake", "Simulated LLM", "A deterministic policy that stands in for a model when none is configured (provider `fake` in code). Its results show that the workflow works, not how good a model is."],
 ];
 
 function showTerm(id: string) {
