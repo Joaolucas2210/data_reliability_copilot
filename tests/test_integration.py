@@ -359,3 +359,54 @@ def test_recovery_isolation_failure_refuses_snapshot_and_cleans_sandbox(monkeypa
         assert (
             c.execute("select 1 from pg_database where datname=%s", (row["sandbox_db"],)).fetchone() is None
         )
+
+
+# ---------------- test-gap hardening ----------------
+
+
+def test_worker_retries_then_fails_and_reopens_incident(latest, monkeypatch):
+    """A crashing investigation is retried, then failed; the incident goes back to open, never stuck."""
+    from drc import worker
+
+    with store.connect() as c:
+        if c.execute(
+            "select 1 from job where status in ('queued','running') and kind <> 'noop' limit 1"
+        ).fetchone():
+            pytest.skip("other claimable jobs present; worker test needs an idle queue")
+    inc = quality.report_manual(latest["last_pipeline_run_id"], "rpt_daily_collections", "pytest worker fail")
+    inv = agent.create(inc, provider="fake")
+    with store.connect() as c:
+        c.execute("update job set status='done' where kind='noop' and status in ('queued','running')")
+    job_id = worker.enqueue("investigate", {"investigation_id": inv}, f"investigate:{inv}")
+    assert (
+        worker.enqueue("investigate", {"investigation_id": inv}, f"investigate:{inv}") == job_id
+    )  # idempotent
+    with store.connect() as c:
+        job = c.execute("select id, max_attempts from job where id=%s", (job_id,)).fetchone()
+
+    def crash(investigation_id):  # same start transitions as agent.run, then the process dies mid-graph
+        with store.connect() as c, c.transaction():
+            if (
+                c.execute("select status from investigation where id=%s", (investigation_id,)).fetchone()[
+                    "status"
+                ]
+                == "queued"
+            ):
+                store.transition(c, "investigation", investigation_id, "running", "pytest")
+                store.transition(c, "incident", inc, "investigating", "pytest")
+        raise RuntimeError("simulated worker crash")
+
+    monkeypatch.setattr(worker.agent, "run", crash)
+    for attempt in range(1, job["max_attempts"] + 1):
+        with store.connect() as c:
+            c.execute("update job set run_after=now() where id=%s", (job["id"],))
+        assert worker.run_once()
+        with store.connect() as c:
+            row = c.execute("select status, attempts, error from job where id=%s", (job["id"],)).fetchone()
+        assert row["attempts"] == attempt and "simulated worker crash" in row["error"]
+        assert row["status"] == ("failed" if attempt == job["max_attempts"] else "queued")
+    with store.connect() as c:
+        assert (
+            c.execute("select status from investigation where id=%s", (inv,)).fetchone()["status"] == "failed"
+        )
+        assert c.execute("select status from incident where id=%s", (inc,)).fetchone()["status"] == "open"

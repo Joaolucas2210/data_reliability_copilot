@@ -31,7 +31,8 @@ for (const theme of ["light", "dark"] as const) {
       // A crashed React tree renders nothing and passes axe vacuously — require real content and no page errors.
       expect(errors).toEqual([]);
       await expect(page.locator("main h1").first()).toBeVisible();
-      await expect(page.getByText(/API unreachable|not found/i)).toHaveCount(0); // real data, not an error state
+      // Match the UI's actual error states (ErrorState / NotFound / ErrorBoundary), not help text like "quote not found".
+      await expect(page.getByText(/Could not load data|It may have been removed|could not be displayed/)).toHaveCount(0);
       const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
       results[`${name}/${theme}`] = r.violations.length ? r.violations.map((v) => `${v.id} (${v.nodes.length})`) : 0;
       await page.screenshot({ path: `${OUT}${name}-${theme}.png`, fullPage: true });

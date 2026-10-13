@@ -269,3 +269,112 @@ def test_live_eval_validates_provider_before_pipeline(monkeypatch):
     monkeypatch.setattr(evaluate.pipeline, "execute", lambda *args: pytest.fail("pipeline ran"))
     with pytest.raises(ValueError, match="credentials"):
         evaluate.run(provider="anthropic")
+
+
+# ---------------- test-gap hardening ----------------
+
+
+def test_citations_normalise_whitespace_and_reject_blank_quotes():
+    ev = [_ev("ev_1", "batch B\n   attempt=2   rows=14")]
+    h = [HypothesisOut(id="H", statement="dup", status="supported", supporting_evidence_ids=["ev_1"])]
+
+    def diag(quote: str) -> Diagnosis:
+        f = Fact(statement="s", evidence_ids=["ev_1"], quote=quote)
+        return Diagnosis(
+            outcome="diagnosed",
+            summary="",
+            observed_facts=[f],
+            hypotheses=h,
+            estimated_scope="",
+            next_step="",
+        )
+
+    assert citations.verify(diag("attempt=2 rows=14"), ev)[1]["facts_supported"] == 1
+    out, rep = citations.verify(diag("   "), ev)
+    assert rep["facts_supported"] == 0 and out.outcome == "abstained"
+
+
+def test_citations_drop_recovery_that_cites_missing_evidence():
+    from drc.domain import RecoveryProposalOut
+
+    d = Diagnosis(
+        outcome="diagnosed",
+        summary="",
+        estimated_scope="",
+        next_step="",
+        observed_facts=[Fact(statement="x", evidence_ids=["ev_1"], quote="rows=14")],
+        hypotheses=[
+            HypothesisOut(id="H", statement="dup", status="supported", supporting_evidence_ids=["ev_1"])
+        ],
+        recovery=RecoveryProposalOut(playbook="dedupe_payments", rationale="r", evidence_ids=["ev_404"]),
+    )
+    out, rep = citations.verify(d, [_ev("ev_1", "rows=14")])
+    assert out.outcome == "diagnosed" and out.recovery is None
+    assert "recovery dropped" in rep["enforcement"] and rep["citation_precision"] == 0.5
+
+
+def test_citation_precision_is_none_when_nothing_is_cited():
+    d = Diagnosis(
+        outcome="no_fault_found",
+        summary="",
+        observed_facts=[],
+        hypotheses=[],
+        estimated_scope="",
+        next_step="",
+    )
+    assert citations.verify(d, [])[1]["citation_precision"] is None
+
+
+@pytest.mark.parametrize(
+    ("counters", "tripped"),
+    [
+        ({"started": 0.0}, "max_wall_s"),
+        ({"llm_calls": 6}, "max_llm_calls"),
+        ({"input_tokens": 120_000}, "max_input_tokens"),
+        ({"cost_usd": 1.0}, "max_cost_usd"),
+        ({}, None),
+        ({"cost_usd": None}, None),  # unknown cost: call/token limits still bound the run
+    ],
+)
+def test_agent_budget_limits(counters, tripped):
+    import time
+
+    from drc import agent
+
+    base = {"started": time.time(), "llm_calls": 0, "input_tokens": 0, "cost_usd": 0.0}
+    assert agent._over_limit({"counters": base | counters}) == tripped  # type: ignore[typeddict-item]
+
+
+def test_worker_rejects_unknown_job_kinds():
+    from drc import worker
+
+    with pytest.raises(ValueError, match="unknown job kind"):
+        worker.handle({"kind": "drop_prod", "payload": {}})
+
+
+# Every write endpoint × every role below its minimum must be refused before touching the database.
+_WRITES = [
+    ("post", "/api/incidents/x/investigations", "investigator", None),
+    ("post", "/api/investigations/x/cancel", "investigator", None),
+    ("post", "/api/proposals/x/validations", "investigator", None),
+    ("post", "/api/investigations/x/review", "approver", {"decision": "approved"}),
+    ("post", "/api/incidents/x/status", "approver", {"to": "resolved"}),
+]
+
+
+@pytest.mark.parametrize(("method", "path", "min_role", "body"), _WRITES)
+def test_api_rbac_matrix_refuses_lower_roles_without_db(method, path, min_role, body, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from drc import api
+
+    monkeypatch.setattr(api.store, "connect", lambda: pytest.fail("authz must run before any DB access"))
+    client = TestClient(api.app)
+    lower = [r for r, rank in api.RANK.items() if rank < api.RANK[min_role]]
+    assert lower
+    for r in [None, *lower]:  # missing header defaults to least privilege
+        headers = {"X-DRC-Role": r} if r else {}
+        resp = getattr(client, method)(path, json=body, headers=headers)
+        assert resp.status_code == 403, (path, r, resp.text)
+        assert resp.json()["error"]["code"] == "forbidden"
+    assert client.post(path, json=body, headers={"X-DRC-Role": "root"}).status_code == 422
