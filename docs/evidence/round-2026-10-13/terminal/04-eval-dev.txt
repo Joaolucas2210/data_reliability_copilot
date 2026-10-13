@@ -1,0 +1,22 @@
+$ DRC_LLM_PROVIDER=fake DRC_JUDGE=1 drc eval --split dev
+# split=dev  provider=fake  policy=fake-v2 sha256[:16]=66a86a5855b34aee (frozen)  scenarios=10
+# rule detection: all expected checks fired = 100%, rule false positives = 0
+
+system           accuracy  false+ abstain ok cite prec  recovery inv viol
+A_rules              0.50       2       0.00         -       0/0        0
+B_summary_llm        0.50       2       0.00         -       0/0        0
+C_agent_tools        1.00       0       1.00      1.00       1/1        0
+
+scenario  expected                              A rules                         C agent + tools                         
+DUP-01    diagnosed duplication                 ✓ diagnosed duplication         ✓ diagnosed duplication                 
+INS-01    abstained                             ✗ diagnosed record_loss         ✓ abstained                             
+NOF-01    no_fault_found                        ✓ no_fault_found                ✓ no_fault_found                        
+SCH-01    diagnosed schema_drift                ✓ diagnosed schema_drift        ✓ diagnosed schema_drift                
+LAT-01    diagnosed delay                       ✓ diagnosed delay               ✓ diagnosed delay                       
+LOSS-01   diagnosed record_loss                 ✓ diagnosed record_loss         ✓ diagnosed record_loss                 
+JOIN-01   diagnosed bad_join                    ✗ diagnosed duplication         ✓ diagnosed bad_join                    
+TRF-01    diagnosed transformation_change       ✗ diagnosed record_loss         ✓ diagnosed transformation_change       
+CON-01    abstained                             ✗ diagnosed record_loss         ✓ abstained                             
+MULTI-01  diagnosed delay+duplication           ✗ diagnosed duplication         ✓ diagnosed delay+duplication           
+
+

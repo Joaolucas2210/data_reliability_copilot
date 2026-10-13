@@ -1,0 +1,96 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.14, pytest-9.1.1, pluggy-1.6.0 -- /home/joao/data_reliability_copilot/.venv/bin/python
+rootdir: /home/joao/data_reliability_copilot
+configfile: pyproject.toml
+testpaths: tests
+plugins: langsmith-0.14.5, cov-7.1.0, anyio-4.15.1, Faker-40.41.0, platformdirs-4.12.4
+collecting ... collected 51 items
+
+tests/test_integration.py::test_isolation PASSED                         [  1%]
+tests/test_integration.py::test_drop_sandbox_refuses_other_databases PASSED [  3%]
+tests/test_integration.py::test_detect_is_idempotent PASSED              [  5%]
+tests/test_integration.py::test_closed_incident_cannot_be_investigated PASSED [  7%]
+tests/test_integration.py::test_resume_after_crash_does_not_repeat_tool_calls PASSED [  9%]
+tests/test_integration.py::test_evidence_does_not_leak_ground_truth PASSED [ 11%]
+tests/test_integration.py::test_tools_refuse_non_allowlisted_inputs PASSED [ 13%]
+tests/test_integration.py::test_api_authorization PASSED                 [ 15%]
+tests/test_integration.py::test_evidence_reads_the_incident_runs_snapshot_not_current_state PASSED [ 17%]
+tests/test_integration.py::test_cancel_queued_and_running PASSED         [ 19%]
+tests/test_integration.py::test_job_heartbeat_renews_lease_only_for_owner PASSED [ 21%]
+tests/test_integration.py::test_prune_protects_runs_of_open_incidents PASSED [ 23%]
+tests/test_integration.py::test_distinct_causes_with_same_checks_do_not_merge PASSED [ 25%]
+tests/test_integration.py::test_eval_fake_judge_wiring_on_existing_snapshot PASSED [ 27%]
+tests/test_integration.py::test_heartbeat_stops_after_lease_ownership_changes PASSED [ 29%]
+tests/test_integration.py::test_recovery_isolation_failure_refuses_snapshot_and_cleans_sandbox PASSED [ 31%]
+tests/test_integration.py::test_worker_retries_then_fails_and_reopens_incident PASSED [ 33%]
+tests/test_unit.py::test_transitions_reject_illegal_moves PASSED         [ 35%]
+tests/test_unit.py::test_decided_incident_can_be_closed PASSED           [ 37%]
+tests/test_unit.py::test_citations_drop_unsupported_and_downgrade PASSED [ 39%]
+tests/test_unit.py::test_citations_unknown_id_marks_hypothesis_inconclusive PASSED [ 41%]
+tests/test_unit.py::test_strict_schema_closes_objects PASSED             [ 43%]
+tests/test_unit.py::test_cost_unknown_is_none_not_zero PASSED            [ 45%]
+tests/test_unit.py::test_catalog_has_20_plus_scenarios_with_required_fields PASSED [ 47%]
+tests/test_unit.py::test_static_check_flags_forbidden_sql PASSED         [ 49%]
+tests/test_unit.py::test_static_check_detects_undeclared_changes PASSED  [ 50%]
+tests/test_unit.py::test_deny_list_is_word_bounded PASSED                [ 52%]
+tests/test_unit.py::test_composite_injection_rejects_unknown_parts_before_running PASSED [ 54%]
+tests/test_unit.py::test_scoring_requires_exact_cause_set PASSED         [ 56%]
+tests/test_unit.py::test_rules_baseline_cannot_abstain PASSED            [ 58%]
+tests/test_unit.py::test_fake_policy_ignores_comment_only_diffs PASSED   [ 60%]
+tests/test_unit.py::test_fingerprint_separates_model_changes_and_dates PASSED [ 62%]
+tests/test_unit.py::test_fake_judge_literal_support_missing_id_and_unsupported PASSED [ 64%]
+tests/test_unit.py::test_judge_opt_in PASSED                             [ 66%]
+tests/test_unit.py::test_live_judge_cannot_override_missing_evidence PASSED [ 68%]
+tests/test_unit.py::test_live_eval_validates_provider_before_pipeline PASSED [ 70%]
+tests/test_unit.py::test_citations_normalise_whitespace_and_reject_blank_quotes PASSED [ 72%]
+tests/test_unit.py::test_citations_drop_recovery_that_cites_missing_evidence PASSED [ 74%]
+tests/test_unit.py::test_citation_precision_is_none_when_nothing_is_cited PASSED [ 76%]
+tests/test_unit.py::test_agent_budget_limits[counters0-max_wall_s] PASSED [ 78%]
+tests/test_unit.py::test_agent_budget_limits[counters1-max_llm_calls] PASSED [ 80%]
+tests/test_unit.py::test_agent_budget_limits[counters2-max_input_tokens] PASSED [ 82%]
+tests/test_unit.py::test_agent_budget_limits[counters3-max_cost_usd] PASSED [ 84%]
+tests/test_unit.py::test_agent_budget_limits[counters4-None] PASSED      [ 86%]
+tests/test_unit.py::test_agent_budget_limits[counters5-None] PASSED      [ 88%]
+tests/test_unit.py::test_worker_rejects_unknown_job_kinds PASSED         [ 90%]
+tests/test_unit.py::test_api_rbac_matrix_refuses_lower_roles_without_db[post-/api/incidents/x/investigations-investigator-None] PASSED [ 92%]
+tests/test_unit.py::test_api_rbac_matrix_refuses_lower_roles_without_db[post-/api/investigations/x/cancel-investigator-None] PASSED [ 94%]
+tests/test_unit.py::test_api_rbac_matrix_refuses_lower_roles_without_db[post-/api/proposals/x/validations-investigator-None] PASSED [ 96%]
+tests/test_unit.py::test_api_rbac_matrix_refuses_lower_roles_without_db[post-/api/investigations/x/review-approver-body3] PASSED [ 98%]
+tests/test_unit.py::test_api_rbac_matrix_refuses_lower_roles_without_db[post-/api/incidents/x/status-approver-body4] PASSED [100%]
+
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.14-final-0 _______________
+
+Name                   Stmts   Miss Branch BrPart  Cover
+--------------------------------------------------------
+src/drc/__init__.py        0      0      0      0   100%
+src/drc/agent.py         290     53     70     14    78%
+src/drc/api.py           153     49     26      6    66%
+src/drc/citations.py      51     14     20      2    75%
+src/drc/cli.py           117    117     34      0     0%
+src/drc/config.py         37      1      0      0    97%
+src/drc/domain.py         81      0      2      0   100%
+src/drc/evaluate.py      122     43     22      5    60%
+src/drc/fake_llm.py      137     40     50     11    65%
+src/drc/judge.py          50      3     12      3    90%
+src/drc/llm.py            87     34     22      2    60%
+src/drc/obs.py            34      4      4      2    84%
+src/drc/pipeline.py      100      7     14      4    90%
+src/drc/quality.py       136     15     42      9    87%
+src/drc/recovery.py      199     68     40      5    64%
+src/drc/retention.py      42     19     14      1    43%
+src/drc/scenarios.py     138     61      8      1    58%
+src/drc/store.py          45     15      8      1    62%
+src/drc/synth.py          82      4     16      0    96%
+src/drc/tools.py         239     93     64     11    56%
+src/drc/worker.py         69     12     20      4    78%
+--------------------------------------------------------
+TOTAL                   2209    652    488     81    67%
+Coverage JSON written to file /tmp/claude-1000/-home-joao-data-reliability-copilot/540d628e-824c-47ce-97de-817aaf861347/scratchpad/run/cov2.json
+============================= slowest 5 durations ==============================
+88.04s call     tests/test_integration.py::test_distinct_causes_with_same_checks_do_not_merge
+0.74s call     tests/test_integration.py::test_isolation
+0.70s call     tests/test_integration.py::test_eval_fake_judge_wiring_on_existing_snapshot
+0.69s call     tests/test_integration.py::test_resume_after_crash_does_not_repeat_tool_calls
+0.67s call     tests/test_integration.py::test_api_authorization
+======================== 51 passed in 94.84s (0:01:34) =========================

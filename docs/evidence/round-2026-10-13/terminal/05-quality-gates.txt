@@ -1,0 +1,46 @@
+$ ruff format --check src tests && ruff check src tests
+23 files already formatted
+All checks passed!
+$ mypy src
+Success: no issues found in 21 source files
+
+$ npm run typecheck
+typecheck ok
+$ npm run contrast
+$ npm run contrast   # WCAG ratios, light / dark
+ok   text on bg: 15.48 / 15.40 (min 4.5)
+ok   text-muted on bg: 7.22 / 8.08 (min 4.5)
+ok   link on bg: 6.14 / 9.05 (min 4.5)
+ok   focus on bg: 6.14 / 9.05 (min 3)
+ok   border-strong on bg: 4.39 / 4.89 (min 3)
+ok   text on surface: 16.88 / 14.19 (min 4.5)
+ok   text-muted on surface: 7.87 / 7.45 (min 4.5)
+ok   link on surface: 6.70 / 8.33 (min 4.5)
+ok   focus on surface: 6.70 / 8.33 (min 3)
+ok   border-strong on surface: 4.78 / 4.50 (min 3)
+ok   text on surface-2: 14.79 / 12.82 (min 4.5)
+ok   text-muted on surface-2: 6.90 / 6.73 (min 4.5)
+ok   link on surface-2: 5.87 / 7.53 (min 4.5)
+ok   focus on surface-2: 5.87 / 7.53 (min 3)
+ok   border-strong on surface-2: 4.19 / 4.07 (min 3)
+ok   pass-fg on pass-bg: 6.49 / 10.19 (min 4.5)
+ok   pass-fg on surface: 7.13 / 12.40 (min 4.5)
+ok   warn-fg on warn-bg: 6.15 / 9.62 (min 4.5)
+ok   warn-fg on surface: 6.85 / 12.07 (min 4.5)
+ok   fail-fg on fail-bg: 5.30 / 8.54 (min 4.5)
+ok   fail-fg on surface: 6.47 / 9.17 (min 4.5)
+ok   info-fg on info-bg: 7.15 / 8.45 (min 4.5)
+ok   info-fg on surface: 8.72 / 9.66 (min 4.5)
+ok   unknown-fg on unknown-bg: 8.33 / 9.12 (min 4.5)
+ok   unknown-fg on surface: 10.31 / 11.82 (min 4.5)
+ok   fact-fg on fact-bg: 11.86 / 10.86 (min 4.5)
+ok   fact-fg on surface: 14.68 / 14.06 (min 4.5)
+ok   hypothesis-fg on hypothesis-bg: 7.39 / 8.77 (min 4.5)
+ok   hypothesis-fg on surface: 8.72 / 9.85 (min 4.5)
+ok   recommendation-fg on recommendation-bg: 6.38 / 8.90 (min 4.5)
+ok   recommendation-fg on surface: 7.31 / 10.32 (min 4.5)
+ok   verified-fg on verified-bg: 6.49 / 10.19 (min 4.5)
+ok   verified-fg on surface: 7.13 / 12.40 (min 4.5)
+$ npx playwright test   # axe WCAG 2.2 AA, fixtures + live API data
+a11y.spec.ts   18 passed (light+dark, reflow 320px, keyboard)
+live.spec.ts   13 passed (real API data, 0 axe violations, viewer gets 403)

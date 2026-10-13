@@ -1,0 +1,13 @@
+$ coverage (branch) — antes vs. depois da revisão de lacunas
+
+module          before   after   delta
+agent.py           75%     78%     +3pp
+api.py             65%     66%     +1pp
+citations.py       66%     75%     +8pp
+fake_llm.py        63%     65%     +2pp
+tools.py           51%     56%     +6pp
+worker.py          31%     78%    +46pp
+--------------------------------------
+TOTAL            64.4%   67.4%  +3.0pp
+
+tests: 34 passed + 1 skipped  ->  51 passed, 0 skipped

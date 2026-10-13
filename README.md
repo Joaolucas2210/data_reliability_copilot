@@ -105,6 +105,7 @@ See the [LIVE results template](docs/evidence/live/RESULTS_TEMPLATE.md) and [pro
 | [Phase 1](docs/report/phase-1-report.md) | Foundation, vertical slice, isolated recovery; fake evaluation. |
 | [Phase 2](docs/report/phase-2-report.md) | Snapshots, 19 executable scenarios, cancellation, leases and retention; fake evaluation. |
 | [Phase 3](docs/report/phase-3-report.md) | Portfolio packaging, incident signatures, optional fact judge; fake dev/final validation. |
+| [Validation round 2026-10-13](docs/evidence/round-2026-10-13/RUNS.md) | 51 tests (0 skipped), branch coverage 64% → 67%, live-data UI 13/13 axe-clean; [test gap review](docs/report/test-gap-review.md). FAKE only. |
 | Next | LIVE measurement and human judge calibration await credentials; cloud remains unapplied. |
 
 [ADRs](docs/adr/README.md) · [Local runbook](docs/operations/local-runbook.md) · [3–4 minute demo](docs/demo/SCRIPT.md)

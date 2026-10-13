@@ -1,0 +1,47 @@
+{"ts": "2026-10-13T14:28:07.234844+00:00", "event": "dbt.finished", "trace_id": "121e50eb78dd2251c2fb6a8ffd6d6329", "step": "dbt_run", "exit_code": 0}
+{"ts": "2026-10-13T14:28:16.595506+00:00", "event": "dbt.finished", "trace_id": "121e50eb78dd2251c2fb6a8ffd6d6329", "step": "dbt_test", "exit_code": 1}
+{"ts": "2026-10-13T14:28:25.905223+00:00", "event": "dbt.finished", "trace_id": "121e50eb78dd2251c2fb6a8ffd6d6329", "step": "dbt_freshness", "exit_code": 0}
+{"ts": "2026-10-13T14:28:26.333611+00:00", "event": "pipeline.finished", "trace_id": null, "run_id": "run_01a135a9b0c5368a7991", "status": "succeeded"}
+{"ts": "2026-10-13T14:28:26.440929+00:00", "event": "incident.detected", "trace_id": null, "incident_id": "inc_01a135aa28c4ce1b6314", "run_id": "run_01a135a9b0c5368a7991", "checks": ["inv_payment_id_unique", "inv_reconciliation_amount", "inv_reconciliation_count", "unique_fct_payments_payment_id"]}
+{"ts": "2026-10-13T14:28:26.593496+00:00", "event": "tool.call", "trace_id": "b90f47d0380f3dbe3c529be45341e8d8", "tool": "get_check_results", "args": {}, "status": "ok", "evidence": 4, "duration_ms": 12, "error": null}
+{"ts": "2026-10-13T14:28:26.649459+00:00", "event": "tool.call", "trace_id": "b90f47d0380f3dbe3c529be45341e8d8", "tool": "compare_control_totals", "args": {}, "status": "ok", "evidence": 2, "duration_ms": 14, "error": null}
+{"ts": "2026-10-13T14:28:26.738500+00:00", "event": "tool.call", "trace_id": "b90f47d0380f3dbe3c529be45341e8d8", "tool": "get_model_changes", "args": {}, "status": "ok", "evidence": 1, "duration_ms": 54, "error": null}
+{"ts": "2026-10-13T14:28:26.772027+00:00", "event": "tool.call", "trace_id": "b90f47d0380f3dbe3c529be45341e8d8", "tool": "get_lineage", "args": {"dataset": "rpt_daily_collections"}, "status": "ok", "evidence": 1, "duration_ms": 5, "error": null}
+{"ts": "2026-10-13T14:28:26.843329+00:00", "event": "tool.call", "trace_id": "b90f47d0380f3dbe3c529be45341e8d8", "tool": "count_duplicates", "args": {"dataset": "raw.payments"}, "status": "ok", "evidence": 1, "duration_ms": 11, "error": null}
+{"ts": "2026-10-13T14:28:26.887724+00:00", "event": "tool.call", "trace_id": "b90f47d0380f3dbe3c529be45341e8d8", "tool": "get_ingestion_batches", "args": {"table": "payments", "only_retries": true}, "status": "ok", "evidence": 1, "duration_ms": 12, "error": null}
+{"ts": "2026-10-13T14:28:26.938509+00:00", "event": "tool.call", "trace_id": "b90f47d0380f3dbe3c529be45341e8d8", "tool": "reconcile_ingestion_batches", "args": {"table": "payments"}, "status": "ok", "evidence": 1, "duration_ms": 18, "error": null}
+{"ts": "2026-10-13T14:28:26.973280+00:00", "event": "tool.call", "trace_id": "b90f47d0380f3dbe3c529be45341e8d8", "tool": "read_ingestion_log", "args": {"level": "WARN"}, "status": "ok", "evidence": 1, "duration_ms": 1, "error": null}
+{"ts": "2026-10-13T14:28:27.023715+00:00", "event": "tool.call", "trace_id": "b90f47d0380f3dbe3c529be45341e8d8", "tool": "check_referential_integrity", "args": {}, "status": "ok", "evidence": 1, "duration_ms": 19, "error": null}
+{"ts": "2026-10-13T14:28:27.090213+00:00", "event": "tool.call", "trace_id": "b90f47d0380f3dbe3c529be45341e8d8", "tool": "get_schema", "args": {"dataset": "raw.payments"}, "status": "ok", "evidence": 2, "duration_ms": 32, "error": null}
+{"ts": "2026-10-13T14:28:27.156952+00:00", "event": "tool.call", "trace_id": "b90f47d0380f3dbe3c529be45341e8d8", "tool": "read_ingestion_log", "args": {"batch_id": "L202610131427-payments-2026-09-28"}, "status": "ok", "evidence": 4, "duration_ms": 1, "error": null}
+{"ts": "2026-10-13T14:28:27.210731+00:00", "event": "tool.call", "trace_id": "b90f47d0380f3dbe3c529be45341e8d8", "tool": "get_failing_rows_sample", "args": {"test_name": "unique_fct_payments_payment_id"}, "status": "ok", "evidence": 1, "duration_ms": 22, "error": null}
+{"ts": "2026-10-13T14:28:37.064370+00:00", "event": "dbt.finished", "trace_id": "58430b38bb54c5652e9bade2dc1e3990", "step": "baseline_run", "exit_code": 0}
+{"ts": "2026-10-13T14:28:44.847496+00:00", "event": "dbt.finished", "trace_id": "58430b38bb54c5652e9bade2dc1e3990", "step": "compile", "exit_code": 0}
+{"ts": "2026-10-13T14:28:54.543360+00:00", "event": "dbt.finished", "trace_id": "58430b38bb54c5652e9bade2dc1e3990", "step": "dbt_build", "exit_code": 0}
+{"ts": "2026-10-13T14:29:02.009322+00:00", "event": "dbt.finished", "trace_id": "58430b38bb54c5652e9bade2dc1e3990", "step": "data_tests", "exit_code": 0}
+{"ts": "2026-10-13T14:29:02.413847+00:00", "event": "validation.finished", "trace_id": null, "validation_run_id": "val_01a135aa2c17e2ec55b0", "status": "passed"}
+{
+  "run_id": "run_01a135a9b0c5368a7991",
+  "incident_id": "inc_01a135aa28c4ce1b6314",
+  "investigation_id": "inv_01a135aa28d94ee7a3a3",
+  "llm_mode": {
+    "mode": "fake",
+    "llm_provider": "fake"
+  },
+  "outcome": "diagnosed",
+  "citation_report": {
+    "facts_total": 6,
+    "facts_supported": 6,
+    "unsupported_facts": [],
+    "cited_ids": 6,
+    "existing_ids": 6,
+    "missing_ids": [],
+    "citation_precision": 1.0,
+    "enforcement": null
+  },
+  "proposal_id": "prop_01a135aa28d94ee7a3a3",
+  "validation_run_id": "val_01a135aa2c17e2ec55b0",
+  "validation_status": "passed",
+  "ui": "http://127.0.0.1:5173/#/incidents/inc_01a135aa28c4ce1b6314",
+  "status": "awaiting human review (see UI or `drc review`)"
+}
