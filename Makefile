@@ -56,8 +56,8 @@ eval-final: migrate ## benchmark, held-out final split (don't tune on it)
 mlflow-ui:       ## browse eval runs on :5050
 	$(VENV) mlflow ui --backend-store-uri sqlite:///var/mlflow.db --port 5050
 
-test-unit:       ## unit tests (no DB)
-	$(VENV) pytest tests/test_unit.py -q
+test-unit:       ## unit + LLM contract tests (no DB, no network)
+	$(VENV) pytest tests/test_unit.py tests/test_llm_contract.py -q
 
 test: up         ## all tests; integration tests need `make demo` first
 	$(VENV) pytest -q

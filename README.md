@@ -159,7 +159,7 @@ See the [LIVE results template](docs/evidence/live/RESULTS_TEMPLATE.md) and [pro
 | [Phase 1](docs/report/phase-1-report.md) | Foundation, vertical slice, isolated recovery; simulated-LLM evaluation. |
 | [Phase 2](docs/report/phase-2-report.md) | Snapshots, 19 executable scenarios, cancellation, leases and retention; simulated-LLM evaluation. |
 | [Phase 3](docs/report/phase-3-report.md) | Portfolio packaging, incident signatures, optional fact judge; simulated-LLM dev/final validation. |
-| [Validation round 2026-10-13](docs/evidence/round-2026-10-13/RUNS.md) | 51 tests (0 skipped), branch coverage 64% → 67%, live-data UI 13/13 axe-clean; [test gap review](docs/report/test-gap-review.md). Simulated LLM only. |
+| [Validation round 2026-10-13](docs/evidence/round-2026-10-13/RUNS.md) | 51 tests (0 skipped), branch coverage 64% → 67%, live-data UI 13/13 axe-clean; follow-up adds a zero-spend LIVE-adapter contract test, a claim race and a destructive retention test (63 tests with the pipeline-history tests); [test gap review](docs/report/test-gap-review.md). Simulated LLM only. |
 | Next | LIVE measurement and human judge calibration await credentials; cloud remains unapplied. |
 
 [ADRs](docs/adr/README.md) · [Local runbook](docs/operations/local-runbook.md) · [3-4 minute demo](docs/demo/SCRIPT.md)

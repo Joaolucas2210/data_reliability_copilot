@@ -464,3 +464,93 @@ def test_worker_retries_then_fails_and_reopens_incident(latest, monkeypatch):
             c.execute("select status from investigation where id=%s", (inv,)).fetchone()["status"] == "failed"
         )
         assert c.execute("select status from incident where id=%s", (inc,)).fetchone()["status"] == "open"
+
+
+def test_concurrent_claims_never_hand_out_the_same_job():
+    """SKIP LOCKED under real contention: N workers racing for N jobs each get a distinct one."""
+    import threading
+
+    from drc import worker
+    from drc.domain import new_id
+
+    with store.connect() as c:
+        if c.execute("select 1 from job where status in ('queued','running') limit 1").fetchone():
+            pytest.skip("claimable jobs present; claim race test needs an idle queue")
+    n = 8
+    jobs = {worker.enqueue("noop", {}, new_id("pytest_race")) for _ in range(n)}
+    start = threading.Barrier(n)
+    claimed: list[str | None] = []
+
+    def race():
+        start.wait()
+        job = worker.claim()
+        claimed.append(job and job["id"])
+
+    threads = [threading.Thread(target=race) for _ in range(n)]
+    try:
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=10)
+        got = [j for j in claimed if j]
+        assert len(got) == len(set(got)), f"double-claimed: {got}"
+        assert set(got) <= jobs
+    finally:
+        with store.connect() as c:
+            c.execute("update job set status='done' where id = any(%s)", (list(jobs),))
+
+
+def test_prune_really_deletes_unprotected_runs_and_spares_open_incident_runs(tmp_path):
+    """Destructive path (not dry-run) on two throwaway runs older than everything else."""
+    from drc import retention
+    from drc.domain import new_id
+
+    runs = {}
+    with psycopg.connect(settings.warehouse_rw_dsn) as w, store.connect() as c:
+        for label in ("gone", "kept"):
+            rid = new_id("run")
+            schema = f"snap_run_pytest_{label}_{os.getpid()}"
+            w.execute(f'create schema "{schema}"')
+            (tmp_path / label).mkdir()
+            c.execute(
+                "insert into pipeline_run(id,pipeline,status,started_at,artifacts_dir,snapshot_schema)"
+                " values (%s,'pytest','success','2000-01-01',%s,%s)",
+                (rid, str(tmp_path / label), schema),
+            )
+            runs[label] = (rid, schema)
+        inc = new_id("inc")
+        c.execute(
+            "insert into incident(id,fingerprint,title,severity,status,first_pipeline_run_id,"
+            "last_pipeline_run_id,opened_at,updated_at) values (%s,%s,'pytest','low','open',%s,%s,now(),now())",
+            (inc, f"pytest:{inc}", runs["kept"][0], runs["kept"][0]),
+        )
+        total = c.execute("select count(*) n from pipeline_run").fetchone()["n"]
+    try:
+        # keep everything except the two oldest; only runs started before the cutoff lose their artifacts
+        report = retention.prune(keep_snapshots=total - 2, run_days=9000, checkpoint_days=100_000)
+        assert report["snapshots_dropped"] == [runs["gone"][1]]
+        assert report["run_dirs_removed"] == [runs["gone"][0]]
+        assert not (tmp_path / "gone").exists() and (tmp_path / "kept").exists()
+        with psycopg.connect(settings.warehouse_rw_dsn) as w:
+            schemas = {
+                r[0]
+                for r in w.execute(
+                    "select nspname from pg_namespace where nspname = any(%s)",
+                    ([s for _, s in runs.values()],),
+                )
+            }
+        assert schemas == {runs["kept"][1]}
+        with store.connect() as c:
+            assert (
+                c.execute(
+                    "select snapshot_schema from pipeline_run where id=%s", (runs["gone"][0],)
+                ).fetchone()["snapshot_schema"]
+                is None
+            )
+    finally:
+        with psycopg.connect(settings.warehouse_rw_dsn) as w:
+            for _, schema in runs.values():
+                w.execute(f'drop schema if exists "{schema}" cascade')
+        with store.connect() as c:
+            c.execute("delete from incident where id=%s", (inc,))
+            c.execute("delete from pipeline_run where id = any(%s)", ([r for r, _ in runs.values()],))

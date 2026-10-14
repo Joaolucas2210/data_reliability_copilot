@@ -21,7 +21,7 @@ jobs:
       - run: uv sync --frozen
       - run: uv run ruff format --check src tests && uv run ruff check src tests
       - run: uv run mypy src
-      - run: uv run pytest tests/test_unit.py -q
+      - run: uv run pytest tests/test_unit.py tests/test_llm_contract.py -q
       - name: bootstrap local roles (CI-only throwaway passwords, same as docker-compose)
         # -i is required: without it docker exec drops stdin and psql applies nothing (exit 0, silent failure)
         run: docker exec -i ${{ job.services.postgres.id }} psql -v ON_ERROR_STOP=1 -U drc_admin -d postgres -f - < infra/local/init.sql
@@ -34,7 +34,7 @@ jobs:
           uv run pytest tests/test_integration.py -q
       - name: dependency audit (known vulnerabilities)
         run: uv export --frozen --no-hashes --no-emit-project > /tmp/req.txt && uv run pip-audit -r /tmp/req.txt --no-deps --disable-pip
-        continue-on-error: true  # advisory until triaged; see docs/operations/ci.md
+        continue-on-error: true  # advisory until triaged; see docs/report/test-gap-review.md
 
   web:
     runs-on: ubuntu-24.04
