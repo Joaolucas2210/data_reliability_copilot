@@ -14,6 +14,7 @@ import { ErrorBoundary, fmtTime, NotFound, PageTitle, SkipLink } from "./compone
 import { Evaluations } from "./pages/Evaluations";
 import { Gallery } from "./pages/Gallery";
 import { Health } from "./pages/Health";
+import { PipelineRunPage, PipelineRuns } from "./pages/PipelineRuns";
 import { Help, TERMS } from "./pages/Help";
 import { IncidentDetailPage, IncidentList } from "./pages/Incidents";
 import { InvestigationPage } from "./pages/Investigation";
@@ -23,6 +24,8 @@ import type { Incident } from "./types";
 // ponytail: hash routing with a regex table — add a router lib when routes need loaders/nesting.
 const ROUTES: [RegExp, (m: string[], q: URLSearchParams) => ReactNode, string][] = [
   [/^\/$/, () => <Health />, "Pipeline health"],
+  [/^\/pipeline-runs$/, () => <PipelineRuns />, "Pipeline runs"],
+  [/^\/pipeline-runs\/([\w-]+)$/, (m) => <PipelineRunPage id={m[1]} />, "Pipeline run"],
   [/^\/incidents$/, (_m, q) => <IncidentList key={q.toString()} initialQuery={q.get("q") ?? ""} initialSort={q.get("sort") ?? "newest"} initialStatus={q.get("status") ?? ""} />, "Incidents"],
   [/^\/incidents\/([\w-]+)$/, (m) => <IncidentDetailPage id={m[1]} />, "Incident"],
   [/^\/investigations\/([\w-]+)$/, (m) => <InvestigationPage id={m[1]} />, "Investigation"],
@@ -35,6 +38,7 @@ const ROUTES: [RegExp, (m: string[], q: URLSearchParams) => ReactNode, string][]
 
 const NAV = [
   { href: "#/", label: "Pipeline health", icon: IconActivityHeartbeat },
+  { href: "#/pipeline-runs", label: "Pipeline runs", icon: IconChartBar },
   { href: "#/incidents", label: "Incidents", icon: IconAlertTriangle },
   { href: "#/evaluations", label: "Evaluations", icon: IconChartBar },
   { href: "#/help", label: "Help & glossary", icon: IconBook2 },
@@ -141,7 +145,7 @@ export function App() {
   }, [pathname, close]);
 
   const section =
-    "#" + (pathname.startsWith("/incidents") || pathname.startsWith("/investigations") || pathname.startsWith("/validation-runs") ? "/incidents" : pathname === "/gallery" ? "/design-system" : pathname);
+    "#" + (pathname.startsWith("/pipeline-runs") ? "/pipeline-runs" : pathname.startsWith("/incidents") || pathname.startsWith("/investigations") || pathname.startsWith("/validation-runs") ? "/incidents" : pathname === "/gallery" ? "/design-system" : pathname);
 
   return (
     <>

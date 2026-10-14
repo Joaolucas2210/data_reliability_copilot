@@ -12,6 +12,7 @@ test.skip(!LIVE_INCIDENT || !LIVE_INVESTIGATION || !LIVE_VALIDATION, "live ids n
 
 const PAGES = [
   ["health", "#/"],
+  ["pipeline-runs", "#/pipeline-runs"],
   ["incidents", "#/incidents"],
   ["incident-detail", `#/incidents/${LIVE_INCIDENT}`],
   ["investigation", `#/investigations/${LIVE_INVESTIGATION}`],
@@ -39,6 +40,20 @@ for (const theme of ["light", "dark"] as const) {
       expect(r.violations.map((v) => `${v.id}: ${v.nodes[0]?.target}`)).toEqual([]);
     });
   }
+}
+
+for (const theme of ["light", "dark"] as const) {
+  test(`live pipeline detail ${theme}`, async ({ page }) => {
+    const response = await page.request.get(`/api/incidents/${LIVE_INCIDENT}`);
+    expect(response.status()).toBe(200);
+    const incident = await response.json();
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
+    await page.goto(`/#/pipeline-runs/${incident.incident.last_pipeline_run_id}`);
+    await expect(page.getByRole("heading", { name: "Quality checks", exact: true })).toBeVisible();
+    await expect(page.getByText("No result recorded")).toHaveCount(0);
+    const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+    expect(result.violations.map((v) => v.id)).toEqual([]);
+  });
 }
 
 test("live: viewer cannot start an investigation (access-denied state)", async ({ page }) => {

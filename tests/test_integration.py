@@ -149,6 +149,60 @@ def test_api_authorization(latest):
 # ---------------- phase 2 ----------------
 
 
+def test_pipeline_history_and_run_detail(latest):
+    from fastapi.testclient import TestClient
+
+    from drc.api import app
+
+    client = TestClient(app)
+    history = client.get("/api/pipeline-runs?limit=2")
+    assert history.status_code == 200
+    assert 0 < len(history.json()) <= 2
+    assert all("scenario_id" not in r and "artifacts_dir" not in r for r in history.json())
+    for invalid in (0, -1, 201):
+        assert client.get(f"/api/pipeline-runs?limit={invalid}").status_code == 422
+    assert client.get("/api/pipeline-runs/run_missing").status_code == 404
+    run_id = latest["last_pipeline_run_id"]
+    detail = client.get(f"/api/pipeline-runs/{run_id}").json()
+    assert detail["run"]["id"] == run_id
+    assert "scenario_id" not in detail["run"] and "artifacts_dir" not in detail["run"]
+    assert detail["execution"]["rc_run"] == 0
+    assert detail["checks"] and all(c["pipeline_run_id"] == run_id for c in detail["checks"])
+    assert latest["id"] in {i["id"] for i in detail["incidents"]}
+    summary = next(r for r in client.get("/api/pipeline-runs?limit=200").json() if r["id"] == run_id)
+    assert summary["total_checks"] == len(detail["checks"])
+    assert summary["failed_checks"] == sum(c["status"] in ("fail", "error") for c in detail["checks"])
+
+
+def test_pipeline_run_without_results_is_not_reported_as_passed():
+    from fastapi.testclient import TestClient
+
+    from drc.api import app
+    from drc.domain import new_id
+
+    run_id = new_id("run")
+    with store.connect() as c:
+        c.execute(
+            "insert into pipeline_run(id,pipeline,status,started_at,artifacts_dir,scenario_id)"
+            " values (%s,'test_pending_run','running',now(),'var/test_pending_run','DUP-01')",
+            (run_id,),
+        )
+    try:
+        client = TestClient(app)
+        detail = client.get(f"/api/pipeline-runs/{run_id}").json()
+        assert detail["execution"] is None and detail["checks"] == []
+        assert detail["run"]["snapshot_schema"] is None
+        summary = client.get("/api/pipeline-runs?limit=1").json()[0]
+        assert summary["id"] == run_id and summary["total_checks"] == 0
+        health = client.get("/api/pipelines/health").json()[0]
+        assert health["last_run"]["id"] == run_id
+        assert health["checks"] == {"pass": 0, "warn": 0, "fail": 0, "error": 0, "skipped": 0}
+        assert health["freshness"] == "unknown"
+    finally:
+        with store.connect() as c:
+            c.execute("delete from pipeline_run where id=%s", (run_id,))
+
+
 def _two_runs_with_snapshots():
     with store.connect() as c:
         rows = c.execute(

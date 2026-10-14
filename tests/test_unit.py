@@ -259,6 +259,22 @@ def test_live_judge_cannot_override_missing_evidence(monkeypatch):
     assert result["usage"]["cost_usd"] is None
 
 
+@pytest.mark.parametrize("statuses", [("warn", "fail"), ("fail", "warn"), ("pass", "error")])
+def test_health_shows_worst_freshness_regardless_of_query_order(monkeypatch, statuses):
+    from drc import api
+
+    def rows(query, *args):
+        if "from pipeline_run" in query:
+            return [{"id": "run_test", "pipeline": "finance_daily"}]
+        if "quality_check_result" in query:
+            return [{"check_type": "freshness", "status": s} for s in statuses]
+        return [{"n": 0}]
+
+    monkeypatch.setattr(api, "_all", rows)
+    health = api.health("viewer")[0]
+    assert health["freshness"] == ("error" if "error" in statuses else "fail")
+
+
 def test_live_eval_validates_provider_before_pipeline(monkeypatch):
     from drc import evaluate
 

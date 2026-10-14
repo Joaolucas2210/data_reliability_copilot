@@ -86,12 +86,19 @@ h1, h2, .row-title, .cell-title, .kv dd, .mono, code { overflow-wrap: break-word
 .tab-list { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
 
 /* ---------- health ---------- */
+.data-flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); list-style: none; margin: 0; padding: 0; }
+.data-flow li { min-width: 0; border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--sp-3); background: var(--surface-2); }
+.data-flow code { font-size: var(--fs-xs); overflow-wrap: anywhere; }
+.flow-number { display: inline-grid; place-items: center; width: 28px; height: 28px; margin-bottom: var(--sp-2); border-radius: 50%; background: var(--info-bg); color: var(--info-fg); font-weight: 700; }
+@media (max-width: 1100px) { .data-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .data-flow { grid-template-columns: minmax(0, 1fr); } }
 .stat-tile { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
 .meter { display: flex; gap: 2px; height: 8px; border-radius: 4px; overflow: hidden; }
 .meter-seg { display: block; min-width: 6px; }
 .seg-pass { background: var(--pass-fg); }
 .seg-warn { background: var(--warn-fg); }
 .seg-fail { background: var(--fail-fg); }
+.seg-unknown { background: var(--unknown-fg); }
 .chart { margin: 0; }
 
 /* ---------- responsive tables: stacked label/value rows below 900px (C10) ---------- */

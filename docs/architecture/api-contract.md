@@ -21,7 +21,9 @@ Errors: `{"error": {"code": "forbidden" | "not_found" | "conflict" | "invalid", 
 
 | Method | Path | Returns |
 |---|---|---|
-| GET | `/api/pipelines/health` | `[{pipeline, last_run: PipelineRun, checks: {pass, warn, fail, error}, freshness: "pass"\|"warn"\|"fail"\|"unknown", open_incidents}]` |
+| GET | `/api/pipelines/health` | `[{pipeline, last_run: PipelineRun, checks: {pass, warn, fail, error, skipped}, freshness: "pass"\|"warn"\|"fail"\|"error"\|"unknown", open_incidents}]`. Worst freshness result across sources; missing checks are not a pass. |
+| GET | `/api/pipeline-runs?limit=20` | Latest run summaries: execution metadata, `passed_checks`, `failed_checks`, `total_checks`. Limit 1–200; excludes scenario labels and artifact paths. |
+| GET | `/api/pipeline-runs/{id}` | `{run, execution, checks, incidents}` for that execution. `execution` contains recorded `rc_run`, `rc_test`, `rc_freshness`, or null until recorded; `run` includes `snapshot_schema`. No result is inferred from a missing exit code. |
 | GET | `/api/incidents?status=` | `[Incident]` |
 | GET | `/api/incidents/{id}` | `{incident, checks: [QualityCheckResult], timeline: [AuditEvent], investigations: [InvestigationSummary]}` |
 | POST | `/api/incidents/{id}/investigations` | `202 {investigation_id, job_id}` (idempotent via `Idempotency-Key` header) |

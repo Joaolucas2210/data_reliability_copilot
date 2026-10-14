@@ -4,7 +4,7 @@ import os
 from typing import Annotated, Literal
 
 import psycopg
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -67,13 +67,14 @@ def health(_: Role = Depends(role)) -> list[dict]:
         return []
     r = run[0]
     r["scenario_id"] = None  # ground-truth label: never exposed outside the benchmark harness
-    counts = {s: 0 for s in ("pass", "warn", "fail", "error")}
+    counts = {s: 0 for s in ("pass", "warn", "fail", "error", "skipped")}
     fresh = "unknown"
+    freshness_rank = {"unknown": 0, "pass": 1, "warn": 2, "fail": 3, "error": 4}
     for c in _all("select check_type, status from quality_check_result where pipeline_run_id=%s", r["id"]):
         if c["status"] in counts:
             counts[c["status"]] += 1
-        if c["check_type"] == "freshness":
-            fresh = c["status"] if fresh in ("unknown", "pass") else fresh
+        if c["check_type"] == "freshness" and freshness_rank.get(c["status"], 0) > freshness_rank[fresh]:
+            fresh = c["status"]
     open_n = _all("select count(*) n from incident where status not in ('resolved','dismissed')")[0]["n"]
     return [
         {
@@ -84,6 +85,51 @@ def health(_: Role = Depends(role)) -> list[dict]:
             "open_incidents": open_n,
         }
     ]
+
+
+@app.get("/api/pipeline-runs")
+def pipeline_runs(limit: Annotated[int, Query(ge=1, le=200)] = 20, _: Role = Depends(role)) -> list[dict]:
+    return _all(
+        "select r.id,r.pipeline,r.status,r.started_at,r.finished_at,r.dbt_version,r.manifest_hash,"
+        " count(q.id) filter (where q.status='pass') as passed_checks,"
+        " count(q.id) filter (where q.status in ('fail','error')) as failed_checks,"
+        " count(q.id) as total_checks from pipeline_run r"
+        " left join quality_check_result q on q.pipeline_run_id=r.id"
+        " group by r.id order by r.started_at desc,r.id desc limit %s",
+        limit,
+    )
+
+
+@app.get("/api/pipeline-runs/{run_id}")
+def pipeline_run(run_id: str, _: Role = Depends(role)) -> dict:
+    run = _one(
+        "select id,pipeline,status,started_at,finished_at,dbt_version,manifest_hash,snapshot_schema"
+        " from pipeline_run where id=%s",
+        run_id,
+    )
+    finished = _all(
+        "select detail from audit_event where entity_type='pipeline_run' and entity_id=%s"
+        " and action='pipeline_run.finished' order by at desc,id desc limit 1",
+        run_id,
+    )
+    # Only expose recorded outcomes, not arbitrary audit detail or paths to local artifacts.
+    execution = (
+        {k: finished[0]["detail"].get(k) for k in ("rc_run", "rc_test", "rc_freshness")} if finished else None
+    )
+    checks = _all(
+        "select * from quality_check_result where pipeline_run_id=%s order by check_type,check_name",
+        run_id,
+    )
+    incidents = _all(
+        "select distinct i.id,i.title,i.status,i.severity from incident i"
+        " where i.first_pipeline_run_id=%s or i.last_pipeline_run_id=%s or i.id in"
+        " (select ic.incident_id from incident_check ic join quality_check_result q on q.id=ic.check_id"
+        " where q.pipeline_run_id=%s) order by i.id desc",
+        run_id,
+        run_id,
+        run_id,
+    )
+    return {"run": run, "execution": execution, "checks": checks, "incidents": incidents}
 
 
 @app.get("/api/incidents")

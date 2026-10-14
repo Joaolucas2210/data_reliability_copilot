@@ -133,6 +133,7 @@ A aprovação registra a decisão humana. Este projeto não aplica a correção 
 | Tela ou situação | O que observar |
 |---|---|
 | Pipeline health | Última execução, checks e incidentes abertos |
+| Pipeline runs | Histórico das últimas 20 execuções; abra uma delas para conferir resultados de dbt, snapshot, checks e incidentes relacionados |
 | Incident | Checks que motivaram o alerta, ocorrências e histórico |
 | Investigation | Fatos, hipóteses, evidências, chamadas de ferramentas e resultado |
 | Sandbox validation | Etapas da correção, comparação antes/depois e isolamento |
@@ -187,6 +188,8 @@ Não há broker Kafka nem scheduler de ingestão nesse fluxo local. A fila é a 
 | `make eval` | Harness dos cenários do split dev | Executa benchmark e grava métricas; não é necessário para operar uma investigação |
 
 A UI consulta estado via HTTP e faz polling das investigações e validações ativas. Não é um stream WebSocket de todas as etapas do pipeline.
+
+A seção **Pipeline runs** usa `GET /api/pipeline-runs` e `GET /api/pipeline-runs/{id}`. Health e histórico atualizam a cada 10 segundos. O detalhe mostra resultados registrados no término da execução; ausência de um código de saída aparece como resultado não registrado. Na lista de checks, a visão padrão prioriza os que precisam de atenção; **All checks** permite inspecionar também os passes.
 
 ### 3. Pipeline e qualidade
 

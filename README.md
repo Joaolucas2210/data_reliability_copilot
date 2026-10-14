@@ -104,6 +104,8 @@ Details, profiles (Marquez, Jaeger) and resource use: [local runbook](docs/opera
 
 Guia em português: [passo a passo para iniciantes e staff engineers](docs/operations/guia-ponta-a-ponta.md), com fluxogramas, gatilhos, investigação e conceitos de engenharia de dados.
 
+[Review de UI e engenharia](docs/reviews/2026-10-12-ui-and-engineering-review.md): melhorias implementadas, problemas reproduzidos e próximos passos priorizados.
+
 ## Repository map
 
 | Path | What |

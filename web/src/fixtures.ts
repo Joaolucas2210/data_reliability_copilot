@@ -8,14 +8,14 @@ export const fxHealth: PipelineHealth[] = [
   {
     pipeline: "finance_daily (fixture)",
     last_run: { id: "run_fx1", pipeline: "finance_daily", scenario_id: null, status: "succeeded", started_at: T, finished_at: T, dbt_version: "1.12.5", manifest_hash: "ab12" },
-    checks: { pass: 12, warn: 0, fail: 2, error: 0 },
+    checks: { pass: 12, warn: 0, fail: 2, error: 0, skipped: 0 },
     freshness: "pass",
     open_incidents: 1,
   },
   {
     pipeline: "finance_clean (fixture)",
     last_run: { id: "run_fx2", pipeline: "finance_clean", scenario_id: null, status: "succeeded", started_at: T, finished_at: T, dbt_version: "1.12.5", manifest_hash: "cd34" },
-    checks: { pass: 14, warn: 1, fail: 0, error: 0 },
+    checks: { pass: 14, warn: 1, fail: 0, error: 0, skipped: 0 },
     freshness: "warn",
     open_incidents: 0,
   },

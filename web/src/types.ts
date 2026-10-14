@@ -17,9 +17,22 @@ export interface PipelineRun {
 export interface PipelineHealth {
   pipeline: string;
   last_run: PipelineRun;
-  checks: { pass: number; warn: number; fail: number; error: number };
-  freshness: "pass" | "warn" | "fail" | "unknown";
+  checks: { pass: number; warn: number; fail: number; error: number; skipped: number };
+  freshness: "pass" | "warn" | "fail" | "error" | "unknown";
   open_incidents: number;
+}
+
+export interface PipelineRunSummary extends Omit<PipelineRun, "scenario_id"> {
+  passed_checks: number;
+  failed_checks: number;
+  total_checks: number;
+}
+
+export interface PipelineRunDetail {
+  run: Omit<PipelineRun, "scenario_id"> & { snapshot_schema: string | null };
+  execution: { rc_run: number | null; rc_test: number | null; rc_freshness: number | null } | null;
+  checks: QualityCheckResult[];
+  incidents: Pick<Incident, "id" | "title" | "status" | "severity">[];
 }
 
 export interface Incident {
